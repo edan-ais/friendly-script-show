@@ -97,18 +97,20 @@ export function Teleprompter() {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   };
 
-  const startRecording = () => {
+  const [countdown, setCountdown] = useState(0);
+
+  const beginRecording = () => {
     const stream = streamRef.current;
     if (!stream) return;
     chunksRef.current = [];
-    const mimeCandidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+    const mimeCandidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
     const mime = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
     const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
     rec.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
     rec.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: "video/webm" });
+      const blob = new Blob(chunksRef.current, { type: rec.mimeType || "video/webm" });
       const url = URL.createObjectURL(blob);
       setRecordedUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -120,7 +122,25 @@ export function Teleprompter() {
     recStartRef.current = Date.now();
     setElapsed(0);
     setRecording(true);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
     setPlaying(true);
+  };
+
+  const startRecording = () => {
+    if (!streamRef.current) return;
+    setCountdown(3);
+    let n = 3;
+    const tick = () => {
+      n -= 1;
+      if (n <= 0) {
+        setCountdown(0);
+        beginRecording();
+      } else {
+        setCountdown(n);
+        setTimeout(tick, 1000);
+      }
+    };
+    setTimeout(tick, 1000);
   };
 
   const stopRecording = () => {
