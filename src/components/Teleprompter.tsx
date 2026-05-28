@@ -38,7 +38,7 @@ export function Teleprompter() {
   useEffect(() => {
     let cancelled = false;
     navigator.mediaDevices
-      .getUserMedia({ video: { width: 1280, height: 720 }, audio: true })
+      .getUserMedia({ video: { facingMode: "user", width: { ideal: 1080 }, height: { ideal: 1920 } }, audio: true })
       .then((stream) => {
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
