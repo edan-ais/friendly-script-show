@@ -250,7 +250,7 @@ export function Teleprompter() {
 
       {/* Side panel — hidden while recording */}
       {!recording && (
-        <aside className="absolute top-16 bottom-20 right-0 w-[340px] z-30 border-l border-white/10 bg-black/60 backdrop-blur p-5 flex flex-col gap-5 overflow-y-auto">
+        <aside className="absolute top-16 bottom-24 inset-x-0 sm:left-auto sm:right-0 sm:w-[340px] z-30 border-t sm:border-t-0 sm:border-l border-white/10 bg-black/70 backdrop-blur p-4 flex flex-col gap-4 overflow-y-auto">
           <div className="flex flex-col gap-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Script</Label>
             <Textarea
