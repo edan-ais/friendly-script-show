@@ -203,6 +203,13 @@ export function Teleprompter() {
         </div>
       )}
 
+      {/* Countdown overlay */}
+      {countdown > 0 && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="text-[180px] font-display font-bold text-primary leading-none animate-pulse">{countdown}</div>
+        </div>
+      )}
+
       {/* Floating stop button — only while recording */}
       {recording && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
