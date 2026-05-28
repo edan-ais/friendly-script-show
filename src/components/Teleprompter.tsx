@@ -38,7 +38,7 @@ export function Teleprompter() {
   useEffect(() => {
     let cancelled = false;
     navigator.mediaDevices
-      .getUserMedia({ video: { width: 1280, height: 720 }, audio: true })
+      .getUserMedia({ video: { facingMode: "user", width: { ideal: 1080 }, height: { ideal: 1920 } }, audio: true })
       .then((stream) => {
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
@@ -97,18 +97,20 @@ export function Teleprompter() {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   };
 
-  const startRecording = () => {
+  const [countdown, setCountdown] = useState(0);
+
+  const beginRecording = () => {
     const stream = streamRef.current;
     if (!stream) return;
     chunksRef.current = [];
-    const mimeCandidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+    const mimeCandidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
     const mime = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
     const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
     rec.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
     rec.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: "video/webm" });
+      const blob = new Blob(chunksRef.current, { type: rec.mimeType || "video/webm" });
       const url = URL.createObjectURL(blob);
       setRecordedUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -120,7 +122,25 @@ export function Teleprompter() {
     recStartRef.current = Date.now();
     setElapsed(0);
     setRecording(true);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
     setPlaying(true);
+  };
+
+  const startRecording = () => {
+    if (!streamRef.current) return;
+    setCountdown(3);
+    let n = 3;
+    const tick = () => {
+      n -= 1;
+      if (n <= 0) {
+        setCountdown(0);
+        beginRecording();
+      } else {
+        setCountdown(n);
+        setTimeout(tick, 1000);
+      }
+    };
+    setTimeout(tick, 1000);
   };
 
   const stopRecording = () => {
@@ -183,6 +203,13 @@ export function Teleprompter() {
         </div>
       )}
 
+      {/* Countdown overlay */}
+      {countdown > 0 && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="text-[180px] font-display font-bold text-primary leading-none animate-pulse">{countdown}</div>
+        </div>
+      )}
+
       {/* Floating stop button — only while recording */}
       {recording && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
@@ -223,7 +250,7 @@ export function Teleprompter() {
 
       {/* Side panel — hidden while recording */}
       {!recording && (
-        <aside className="absolute top-16 bottom-20 right-0 w-[340px] z-30 border-l border-white/10 bg-black/60 backdrop-blur p-5 flex flex-col gap-5 overflow-y-auto">
+        <aside className="absolute top-16 bottom-24 inset-x-0 sm:left-auto sm:right-0 sm:w-[340px] z-30 border-t sm:border-t-0 sm:border-l border-white/10 bg-black/70 backdrop-blur p-4 flex flex-col gap-4 overflow-y-auto">
           <div className="flex flex-col gap-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Script</Label>
             <Textarea
