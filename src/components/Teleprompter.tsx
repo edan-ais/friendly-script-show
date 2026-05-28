@@ -270,7 +270,9 @@ export function Teleprompter() {
             </div>
           )}
         </aside>
-      </div>
+      )}
     </div>
+  );
+}
   );
 }
