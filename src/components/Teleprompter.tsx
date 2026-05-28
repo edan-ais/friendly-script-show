@@ -132,89 +132,98 @@ export function Teleprompter() {
   const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Top bar */}
-      <header className="border-b border-border bg-card/40 backdrop-blur px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="size-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">P</div>
-          <h1 className="text-xl font-bold">Prompter</h1>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className={`size-2 rounded-full ${camReady ? "bg-primary" : "bg-destructive"}`} />
-          {camReady ? "Camera ready" : "Camera unavailable"}
-        </div>
-      </header>
+    <div className="h-screen w-screen overflow-hidden bg-black text-foreground relative">
+      {/* Fullscreen webcam */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ transform: "scaleX(-1)" }}
+      />
+      {/* Dim overlay for legibility */}
+      <div className="absolute inset-0 bg-black/45 pointer-events-none" />
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
-        {/* Main stage */}
-        <main className="relative bg-background flex flex-col">
-          <div className="relative flex-1 min-h-[60vh] overflow-hidden">
-            {/* webcam preview */}
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className="absolute top-4 right-4 w-56 aspect-video rounded-lg border border-border object-cover z-20 shadow-2xl"
-            />
-            {recording && (
-              <div className="absolute top-6 left-6 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive text-destructive-foreground text-sm font-medium">
-                <Circle className="size-3 fill-current animate-pulse" />
-                REC {fmt(elapsed)}
-              </div>
-            )}
+      {/* Prompter text column — narrow so ~4 words per line */}
+      <div className="absolute inset-0 flex justify-center pointer-events-none">
+        <div className="relative h-full w-full max-w-3xl">
+          {/* fade gradients */}
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/80 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none" />
+          {/* reading line */}
+          <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 border-t-2 border-primary/60 z-10 pointer-events-none" />
 
-            {/* fade gradients */}
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
-            {/* reading line */}
-            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t-2 border-primary/40 z-10 pointer-events-none" />
-
-            <div
-              ref={scrollRef}
-              className="absolute inset-0 overflow-y-auto scrollbar-none px-12 lg:px-24"
-              style={{ scrollbarWidth: "none" }}
+          <div
+            ref={scrollRef}
+            className="absolute inset-0 overflow-y-auto px-6 pointer-events-auto"
+            style={{ scrollbarWidth: "none" }}
+          >
+            <div style={{ height: "50vh" }} />
+            <p
+              className="whitespace-pre-wrap font-display font-bold leading-[1.15] text-white text-center break-words"
+              style={{
+                fontSize: `${fontSize}px`,
+                transform: mirror ? "scaleX(-1)" : undefined,
+                textShadow: "0 2px 24px rgba(0,0,0,0.8)",
+              }}
             >
-              <div style={{ height: "50vh" }} />
-              <p
-                className="whitespace-pre-wrap font-display font-bold leading-[1.3] text-foreground"
-                style={{
-                  fontSize: `${fontSize}px`,
-                  transform: mirror ? "scaleX(-1)" : undefined,
-                }}
-              >
-                {text || "Paste your script in the panel →"}
-              </p>
-              <div style={{ height: "60vh" }} />
-            </div>
+              {text || "Paste your script in the panel →"}
+            </p>
+            <div style={{ height: "60vh" }} />
           </div>
+        </div>
+      </div>
 
-          {/* Controls */}
-          <div className="border-t border-border bg-card/40 backdrop-blur px-6 py-4 flex items-center justify-center gap-3">
-            <Button size="lg" variant="secondary" onClick={reset}>
-              <RotateCcw className="size-4" /> Reset
-            </Button>
-            <Button
-              size="lg"
-              onClick={() => setPlaying((p) => !p)}
-              className="min-w-32"
-            >
-              {playing ? <><Pause className="size-4" /> Pause</> : <><Play className="size-4" /> Play</>}
-            </Button>
-            {!recording ? (
-              <Button size="lg" variant="destructive" onClick={startRecording} disabled={!camReady}>
-                <Circle className="size-4 fill-current" /> Record
-              </Button>
-            ) : (
-              <Button size="lg" variant="destructive" onClick={stopRecording}>
-                <Square className="size-4 fill-current" /> Stop
-              </Button>
-            )}
+      {/* REC badge — visible while recording */}
+      {recording && (
+        <div className="absolute top-6 left-6 z-30 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive text-destructive-foreground text-sm font-medium">
+          <Circle className="size-3 fill-current animate-pulse" />
+          REC {fmt(elapsed)}
+        </div>
+      )}
+
+      {/* Floating stop button — only while recording */}
+      {recording && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
+          <Button size="lg" variant="destructive" onClick={stopRecording} className="rounded-full shadow-2xl px-6">
+            <Square className="size-4 fill-current" /> Stop recording
+          </Button>
+        </div>
+      )}
+
+      {/* Header — hidden while recording */}
+      {!recording && (
+        <header className="absolute top-0 inset-x-0 z-30 border-b border-white/10 bg-black/40 backdrop-blur px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="size-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">P</div>
+            <h1 className="text-xl font-bold">Prompter</h1>
           </div>
-        </main>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className={`size-2 rounded-full ${camReady ? "bg-primary" : "bg-destructive"}`} />
+            {camReady ? "Camera ready" : "Camera unavailable"}
+          </div>
+        </header>
+      )}
 
-        {/* Side panel */}
-        <aside className="border-l border-border bg-card/30 p-6 flex flex-col gap-6 overflow-y-auto max-h-screen">
+      {/* Bottom controls — hidden while recording */}
+      {!recording && (
+        <div className="absolute bottom-0 inset-x-0 z-30 border-t border-white/10 bg-black/50 backdrop-blur px-6 py-4 flex items-center justify-center gap-3">
+          <Button size="lg" variant="secondary" onClick={reset}>
+            <RotateCcw className="size-4" /> Reset
+          </Button>
+          <Button size="lg" onClick={() => setPlaying((p) => !p)} className="min-w-32">
+            {playing ? <><Pause className="size-4" /> Pause</> : <><Play className="size-4" /> Play</>}
+          </Button>
+          <Button size="lg" variant="destructive" onClick={startRecording} disabled={!camReady}>
+            <Circle className="size-4 fill-current" /> Record
+          </Button>
+        </div>
+      )}
+
+      {/* Side panel — hidden while recording */}
+      {!recording && (
+        <aside className="absolute top-16 bottom-20 right-0 w-[340px] z-30 border-l border-white/10 bg-black/60 backdrop-blur p-5 flex flex-col gap-5 overflow-y-auto">
           <div className="flex flex-col gap-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Script</Label>
             <Textarea
