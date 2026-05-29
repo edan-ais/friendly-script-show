@@ -313,7 +313,7 @@ export function Teleprompter() {
       if (result.note) toast.info(result.note);
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error ? err.message : "Conversion failed");
+      toast.error(err instanceof Error ? err.message : "Conversion failed", { duration: 9000 });
     } finally {
       setConverting(false);
     }
@@ -786,8 +786,8 @@ function ConverterModal({
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Converts old WebM recordings into iPhone Photos-compatible MP4 downloads, or extracts
-          audio.
+          WebM conversion on iPhone only works for short clips. Longer WebMs need desktop/server
+          conversion before they can be saved to Photos.
         </p>
         <input
           ref={inputRef}
