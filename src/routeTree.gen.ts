@@ -9,8 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrompterRouteImport } from './routes/prompter'
+import { Route as DocumentRouteImport } from './routes/document'
 import { Route as IndexRouteImport } from './routes/index'
 
+const PrompterRoute = PrompterRouteImport.update({
+  id: '/prompter',
+  path: '/prompter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentRoute = DocumentRouteImport.update({
+  id: '/document',
+  path: '/document',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +31,50 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/document': typeof DocumentRoute
+  '/prompter': typeof PrompterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/document': typeof DocumentRoute
+  '/prompter': typeof PrompterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/document': typeof DocumentRoute
+  '/prompter': typeof PrompterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/document' | '/prompter'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/document' | '/prompter'
+  id: '__root__' | '/' | '/document' | '/prompter'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DocumentRoute: typeof DocumentRoute
+  PrompterRoute: typeof PrompterRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/prompter': {
+      id: '/prompter'
+      path: '/prompter'
+      fullPath: '/prompter'
+      preLoaderRoute: typeof PrompterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/document': {
+      id: '/document'
+      path: '/document'
+      fullPath: '/document'
+      preLoaderRoute: typeof DocumentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +87,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DocumentRoute: DocumentRoute,
+  PrompterRoute: PrompterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
