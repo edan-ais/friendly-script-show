@@ -145,7 +145,7 @@ async function runConversion(input: Blob, args: string[], outputExt: ConversionR
       } catch (mountError) {
         console.warn("[convert] WORKERFS mount failed; falling back to memory input", mountError);
         await ff.writeFile(inputPath, await fetchFile(input));
-        cleanupInput = () => ff.deleteFile(inputPath).catch(() => {});
+        cleanupInput = async () => { await ff.deleteFile(inputPath).catch(() => {}); };
       }
 
       const code = await ff.exec(["-hide_banner", "-i", inputPath, ...args, outputName]);
