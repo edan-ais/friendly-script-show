@@ -197,16 +197,20 @@ export function Teleprompter() {
     try {
       let blob = clip.blob;
       let ext: string = clip.ext;
-      if (format === "mp4" && clip.ext !== "mp4") {
+      if (format === "mp4") {
         setBusyId(clip.id);
         toast.info("Converting to MP4… first time may take a moment.");
-        blob = await videoToMp4(clip.blob);
-        ext = "mp4";
+        const result = await videoToMp4(clip.blob);
+        blob = result.blob;
+        ext = result.ext;
+        if (result.note) toast.info(result.note);
       } else if (format === "mp3") {
         setBusyId(clip.id);
         toast.info("Extracting MP3 audio… first time may take a moment.");
-        blob = await videoToMp3(clip.blob);
-        ext = "mp3";
+        const result = await videoToMp3(clip.blob);
+        blob = result.blob;
+        ext = result.ext;
+        if (result.note) toast.info(result.note);
       }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -231,14 +235,15 @@ export function Teleprompter() {
     try {
       setConverting(true);
       toast.info("Converting… this may take a moment.");
-      const converted = format === "mp3" ? await videoToMp3(file) : await videoToMp4(file);
-      const url = URL.createObjectURL(converted);
+      const result = format === "mp3" ? await videoToMp3(file) : await videoToMp4(file);
+      const url = URL.createObjectURL(result.blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = file.name.replace(/\.(webm|mkv|mov|avi|mp4)$/i, "") + `.${format}`;
+      a.download = file.name.replace(/\.(webm|mkv|mov|avi|mp4|m4v)$/i, "") + `.${result.ext}`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      toast.success(`Converted to ${format.toUpperCase()}`);
+      toast.success(result.converted ? `Saved as ${result.ext.toUpperCase()}` : `Downloaded ${result.ext.toUpperCase()}`);
+      if (result.note) toast.info(result.note);
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Conversion failed");
