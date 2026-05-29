@@ -294,6 +294,14 @@ export function Teleprompter() {
             <Slider value={[fontSize]} min={24} max={120} step={2} onValueChange={(v) => setFontSize(v[0])} />
           </div>
 
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 text-sm"><ZoomIn className="size-4" /> Camera zoom</Label>
+              <span className="text-sm text-muted-foreground tabular-nums">{zoom.toFixed(2)}×</span>
+            </div>
+            <Slider value={[zoom]} min={1} max={3} step={0.05} onValueChange={(v) => setZoom(v[0])} />
+          </div>
+
           <div className="flex items-center justify-between">
             <Label htmlFor="mirror" className="flex items-center gap-2 text-sm">
               <FlipHorizontal className="size-4" /> Mirror text
