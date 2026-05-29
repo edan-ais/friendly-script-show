@@ -238,9 +238,11 @@ function DynamicBodyFit({ children, deps, profile }: { children: ReactNode; deps
     const fit = () => {
       inner.style.setProperty("--fit-scale", "1");
       const available = outer.clientHeight;
+      const availableWidth = outer.clientWidth;
       const natural = inner.scrollHeight;
-      if (!available || !natural) return;
-      const raw = available / natural;
+      const naturalWidth = inner.scrollWidth;
+      if (!available || !availableWidth || !natural || !naturalWidth) return;
+      const raw = Math.min(available / natural, availableWidth / naturalWidth);
       const eased = raw >= 1 ? 1 + (raw - 1) * 0.72 : raw * 0.98;
       const next = Math.max(profile.minFit, Math.min(profile.maxFit, eased));
       setScale((prev) => (Math.abs(prev - next) < 0.01 ? prev : next));
