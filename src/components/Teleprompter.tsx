@@ -672,6 +672,34 @@ export function Teleprompter() {
   );
 }
 
+// ============ Conversion Progress Bar ============
+function ConvertProgressBar({ progress }: { progress: ConvertProgress }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    if (!progress) return;
+    const id = window.setInterval(() => force((n) => n + 1), 500);
+    return () => window.clearInterval(id);
+  }, [progress]);
+  if (!progress) return null;
+  const pct = Math.max(2, Math.min(100, Math.round(progress.ratio * 100)));
+  const elapsedSec = (performance.now() - progress.startedAt) / 1000;
+  const etaSec =
+    progress.ratio > 0.01 ? elapsedSec / progress.ratio - elapsedSec : Number.POSITIVE_INFINITY;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Progress value={pct} className="h-2" />
+      <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+        <span>{pct}%</span>
+        <span>
+          {progress.ratio > 0.01 && Number.isFinite(etaSec)
+            ? `~${formatEta(etaSec)} left`
+            : "Estimating…"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ============ Video Bank Modal ============
 function VideoBank({
   clips,
@@ -679,12 +707,14 @@ function VideoBank({
   onDelete,
   onDownload,
   busyId,
+  progress,
 }: {
   clips: SavedClip[];
   onClose: () => void;
   onDelete: (id: string) => void;
   onDownload: (clip: SavedClip, format: DownloadFormat) => void;
   busyId: string | null;
+  progress: ConvertProgress;
 }) {
   return (
     <div
@@ -695,12 +725,10 @@ function VideoBank({
         className="bg-card text-card-foreground rounded-xl border border-border w-full max-w-3xl max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Library className="size-5" />
-            <h2 className="text-lg font-bold">Video bank</h2>
-            <span className="text-sm text-muted-foreground">({clips.length})</span>
-          </div>
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Library className="size-5" /> Video Bank
+          </h2>
           <Button size="icon" variant="ghost" onClick={onClose}>
             <X className="size-4" />
           </Button>
@@ -719,6 +747,7 @@ function VideoBank({
               onDelete={onDelete}
               onDownload={onDownload}
               busy={busyId === c.id}
+              progress={busyId === c.id ? progress : null}
             />
           ))}
         </div>
@@ -732,11 +761,13 @@ function BankCard({
   onDelete,
   onDownload,
   busy,
+  progress,
 }: {
   clip: SavedClip;
   onDelete: (id: string) => void;
   onDownload: (clip: SavedClip, format: DownloadFormat) => void;
   busy: boolean;
+  progress: ConvertProgress;
 }) {
   const [url, setUrl] = useState<string>("");
   useEffect(() => {
@@ -750,6 +781,7 @@ function BankCard({
       <div className="text-xs text-muted-foreground">
         {new Date(clip.createdAt).toLocaleString()} · {clip.durationSec}s · {clip.ext.toUpperCase()}
       </div>
+      {busy && <ConvertProgressBar progress={progress} />}
       <div className="flex gap-2">
         <Button
           size="sm"
@@ -758,15 +790,7 @@ function BankCard({
           onClick={() => onDownload(clip, "mp4")}
           disabled={busy}
         >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} MP4
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onDownload(clip, "mp3")}
-          disabled={busy}
-        >
-          MP3
+          <Download className="size-4" /> MP4
         </Button>
         <Button
           size="sm"
@@ -789,13 +813,14 @@ function ConverterModal({
   onClose,
   onConvert,
   converting,
+  progress,
 }: {
   onClose: () => void;
-  onConvert: (file: File, format: "mp4" | "mp3") => void;
+  onConvert: (file: File) => void;
   converting: boolean;
+  progress: ConvertProgress;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const formatRef = useRef<"mp4" | "mp3">("mp4");
   return (
     <div
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
@@ -824,43 +849,23 @@ function ConverterModal({
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) onConvert(f, formatRef.current);
+            if (f) onConvert(f);
             e.currentTarget.value = "";
           }}
         />
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            size="lg"
-            onClick={() => {
-              formatRef.current = "mp4";
-              inputRef.current?.click();
-            }}
-            disabled={converting}
-          >
-            {converting ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <FileVideo className="size-4" />
-            )}{" "}
-            MP4
-          </Button>
-          <Button
-            size="lg"
-            variant="secondary"
-            onClick={() => {
-              formatRef.current = "mp3";
-              inputRef.current?.click();
-            }}
-            disabled={converting}
-          >
-            {converting ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Download className="size-4" />
-            )}{" "}
-            MP3
-          </Button>
-        </div>
+        {converting && <ConvertProgressBar progress={progress} />}
+        <Button
+          size="lg"
+          onClick={() => inputRef.current?.click()}
+          disabled={converting}
+        >
+          {converting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <FileVideo className="size-4" />
+          )}{" "}
+          Choose WebM to convert
+        </Button>
       </div>
     </div>
   );
