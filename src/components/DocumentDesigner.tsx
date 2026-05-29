@@ -142,7 +142,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   if (words <= 150) {
     return {
       columns: 1,
-      fill: "flex-start",
+      fill: "space-between",
       titleSize: 36,
       subtitleSize: 15,
       titleMarginTop: 18,
@@ -164,7 +164,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   if (words <= 320) {
     return {
       columns: 1,
-      fill: "flex-start",
+      fill: "space-between",
       titleSize: 31,
       subtitleSize: 13.5,
       titleMarginTop: 16,
@@ -186,7 +186,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   if (!useColumns) {
     return {
       columns: 1,
-      fill: "flex-start",
+      fill: "space-between",
       titleSize: 27,
       subtitleSize: 12.4,
       titleMarginTop: 14,
@@ -207,7 +207,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
 
   return {
     columns: 2,
-    fill: "flex-start",
+    fill: "space-between",
     titleSize: words > 850 ? 23 : 25,
     subtitleSize: words > 850 ? 10.8 : 11.6,
     titleMarginTop: 11,
@@ -341,7 +341,8 @@ export function DocumentDesigner() {
           display: block;
           column-count: 2;
           column-gap: 24px;
-          column-fill: auto;
+          column-fill: balance;
+          height: 100%;
         }
         .doc-flow[data-columns="2"] .doc-block { margin-bottom: var(--doc-block-gap); }
         .doc-block { break-inside: avoid; margin: 0; }
@@ -492,12 +493,23 @@ export function DocumentDesigner() {
               }}
             >
               {!doc ? (
-                <div
-                  className="mt-6 rounded-lg border border-dashed p-6 text-center text-sm"
-                  style={{ borderColor: `${BRAND.navy}25`, color: `${BRAND.navy}80` }}
-                >
-                  Paste your text on the left and click <span className="font-semibold">Format with AI</span> to generate a branded one-pager.
-                </div>
+                raw.trim() ? (
+                  <DynamicBodyFit deps={[raw]} profile={profile}>
+                    <p
+                      className="doc-block doc-paragraph"
+                      style={{ color: BRAND.navy, whiteSpace: "pre-wrap" }}
+                    >
+                      {raw}
+                    </p>
+                  </DynamicBodyFit>
+                ) : (
+                  <div
+                    className="mt-6 rounded-lg border border-dashed p-6 text-center text-sm"
+                    style={{ borderColor: `${BRAND.navy}25`, color: `${BRAND.navy}80` }}
+                  >
+                    Paste your text on the left and click <span className="font-semibold">Format with AI</span> to generate a branded one-pager.
+                  </div>
+                )
               ) : (
                 <DynamicBodyFit deps={[doc]} profile={profile}>
                   {doc.blocks.map((b, i) => (
@@ -510,7 +522,7 @@ export function DocumentDesigner() {
             {/* Footer slogan */}
             <div
               className="relative z-10 shrink-0 px-10 py-3 text-center text-[10px] italic tracking-wide"
-              style={{ borderTop: `1px solid ${BRAND.navy}15`, color: BRAND.navy, opacity: 0.7, textShadow: "0 1px 0 rgba(255,255,255,0.9)" }}
+              style={{ color: BRAND.navy, opacity: 0.7, textShadow: "0 1px 0 rgba(255,255,255,0.9)" }}
             >
               {BRAND.tagline}
             </div>
