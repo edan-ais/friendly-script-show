@@ -141,7 +141,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   if (words <= 150) {
     return {
       columns: 1,
-      fill: "space-evenly",
+      fill: "flex-start",
       titleSize: 36,
       subtitleSize: 15,
       titleMarginTop: 18,
@@ -156,14 +156,14 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
       sectionGap: 8,
       listGap: 8,
       minFit: 0.86,
-      maxFit: 1.9,
+      maxFit: 2.4,
     };
   }
 
   if (words <= 320) {
     return {
       columns: 1,
-      fill: "space-between",
+      fill: "flex-start",
       titleSize: 31,
       subtitleSize: 13.5,
       titleMarginTop: 16,
@@ -178,7 +178,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
       sectionGap: 7,
       listGap: 6,
       minFit: 0.78,
-      maxFit: 1.55,
+      maxFit: 1.85,
     };
   }
 
@@ -200,7 +200,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
       sectionGap: 5,
       listGap: 4,
       minFit: 0.7,
-      maxFit: 1.18,
+      maxFit: 1.35,
     };
   }
 
