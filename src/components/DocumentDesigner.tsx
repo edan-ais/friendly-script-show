@@ -142,7 +142,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   if (words <= 150) {
     return {
       columns: 1,
-      fill: "space-between",
+      fill: "flex-start",
       titleSize: 36,
       subtitleSize: 15,
       titleMarginTop: 18,
@@ -164,7 +164,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   if (words <= 320) {
     return {
       columns: 1,
-      fill: "space-between",
+      fill: "flex-start",
       titleSize: 31,
       subtitleSize: 13.5,
       titleMarginTop: 16,
@@ -186,7 +186,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   if (!useColumns) {
     return {
       columns: 1,
-      fill: "space-between",
+      fill: "flex-start",
       titleSize: 27,
       subtitleSize: 12.4,
       titleMarginTop: 14,
@@ -207,7 +207,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
 
   return {
     columns: 2,
-    fill: "space-between",
+    fill: "flex-start",
     titleSize: words > 850 ? 23 : 25,
     subtitleSize: words > 850 ? 10.8 : 11.6,
     titleMarginTop: 11,
