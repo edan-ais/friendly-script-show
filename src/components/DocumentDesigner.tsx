@@ -126,11 +126,6 @@ type LayoutProfile = {
   maxFit: number;
 };
 
-const getBlockWords = (block: DocBlock) => {
-  const text = block.kind === "list" ? block.items.join(" ") : block.text;
-  return text.trim().split(/\s+/).filter(Boolean).length;
-};
-
 function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   const words = doc
     ? [doc.title, doc.subtitle ?? "", ...doc.blocks.map((block) => (block.kind === "list" ? block.items.join(" ") : block.text))]
@@ -291,6 +286,7 @@ export function DocumentDesigner() {
   const [doc, setDoc] = useState<StructuredDoc | null>(null);
   const [loading, setLoading] = useState(false);
   const structureFn = useServerFn(structureDocument);
+  const profile = useMemo(() => getLayoutProfile(doc), [doc]);
 
   const today = new Date().toLocaleDateString(undefined, {
     year: "numeric",
@@ -324,6 +320,36 @@ export function DocumentDesigner() {
           print-color-adjust: exact !important;
           color-adjust: exact !important;
         }
+        .doc-flow {
+          transform: scale(var(--fit-scale));
+          transform-origin: top left;
+          width: calc(100% / var(--fit-scale));
+          height: calc(100% / var(--fit-scale));
+          font-size: var(--doc-body-font);
+          line-height: var(--doc-line);
+        }
+        .doc-flow[data-columns="1"] {
+          display: flex;
+          flex-direction: column;
+          justify-content: var(--doc-fill);
+          gap: var(--doc-block-gap);
+        }
+        .doc-flow[data-columns="2"] {
+          display: block;
+          column-count: 2;
+          column-gap: 24px;
+          column-fill: auto;
+        }
+        .doc-flow[data-columns="2"] .doc-block { margin-bottom: var(--doc-block-gap); }
+        .doc-block { break-inside: avoid; margin: 0; }
+        .doc-heading { margin: var(--doc-section-gap) 0 0; font-size: var(--doc-heading-font); line-height: 1.12; font-weight: 800; letter-spacing: 0; }
+        .doc-subheading { margin: var(--doc-section-gap) 0 0; font-size: var(--doc-subheading-font); line-height: 1.2; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; }
+        .doc-paragraph { font-size: var(--doc-body-font); line-height: var(--doc-line); }
+        .doc-list { display: grid; gap: var(--doc-list-gap); padding: 0; list-style: none; font-size: var(--doc-body-font); line-height: calc(var(--doc-line) * 0.96); }
+        .doc-list-item { display: flex; gap: 8px; align-items: flex-start; }
+        .doc-bullet { margin-top: 0.62em; display: inline-block; width: 4px; height: 4px; flex: 0 0 auto; border-radius: 999px; }
+        .doc-quote { border-left-width: 3px; padding-left: 12px; font-size: var(--doc-quote-font); line-height: var(--doc-line); font-style: italic; }
+        .doc-callout { border-radius: 6px; padding: 8px 12px; font-size: var(--doc-body-font); line-height: 1.28; font-weight: 650; }
         @media print {
           html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
           body * { visibility: hidden !important; }
