@@ -107,6 +107,58 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
   }
 }
 
+function normalizeForCompare(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function getDocText(doc: StructuredDoc) {
+  return [
+    doc.title,
+    doc.subtitle ?? "",
+    ...doc.blocks.flatMap((block) => (block.kind === "list" ? block.items : block.text)),
+  ].join("\n");
+}
+
+function didPreserveMeaning(source: string, structured: StructuredDoc) {
+  const sourceWords = new Set(normalizeForCompare(source).split(/\s+/).filter((word) => word.length > 2));
+  const outputWords = normalizeForCompare(getDocText(structured)).split(/\s+/).filter((word) => word.length > 2);
+  if (!sourceWords.size || !outputWords.length) return false;
+  const validWords = outputWords.filter((word) => sourceWords.has(word)).length;
+  return validWords / outputWords.length > 0.82;
+}
+
+function formatRawFallback(text: string): StructuredDoc {
+  const lines = text.trim().split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const title = lines[0] ?? "Untitled";
+  const blocks: DocBlock[] = [];
+  let pendingList: string[] = [];
+
+  const flushList = () => {
+    if (pendingList.length) {
+      blocks.push({ kind: "list", items: pendingList });
+      pendingList = [];
+    }
+  };
+
+  for (const line of lines.slice(1)) {
+    const bullet = line.match(/^[-•*]\s+(.+)/);
+    if (bullet) {
+      pendingList.push(bullet[1]);
+      continue;
+    }
+    flushList();
+    blocks.push({ kind: "paragraph", text: line });
+  }
+  flushList();
+
+  return { title, subtitle: "", eyebrow: "", blocks };
+}
+
 type LayoutProfile = {
   columns: 1 | 2;
   fill: "flex-start" | "space-between" | "space-evenly";
