@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { listClips, saveClip, deleteClip, type SavedClip } from "@/lib/video-bank";
-import { webmToMp4 } from "@/lib/convert";
+import { videoToMp3, videoToMp4 } from "@/lib/convert";
 
 const SAMPLE = `Welcome to Prompter.
 
@@ -22,6 +22,7 @@ Click record to capture yourself reading — the video saves straight to your ba
 Adjust speed and font size on the setup screen. Mirror the text if you're reading off a reflective glass rig.`;
 
 type Mode = "setup" | "stage";
+type DownloadFormat = "original" | "mp4" | "mp3";
 
 export function Teleprompter() {
   const [mode, setMode] = useState<Mode>("setup");
@@ -192,15 +193,20 @@ export function Teleprompter() {
 
   const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-  const downloadClip = useCallback(async (clip: SavedClip, asMp4: boolean) => {
+  const downloadClip = useCallback(async (clip: SavedClip, format: DownloadFormat) => {
     try {
       let blob = clip.blob;
-      let ext = clip.ext;
-      if (asMp4 && clip.ext !== "mp4") {
+      let ext: string = clip.ext;
+      if (format === "mp4" && clip.ext !== "mp4") {
         setBusyId(clip.id);
-        toast.info("Converting to MP4… first time loads ~25 MB.");
-        blob = await webmToMp4(clip.blob);
+        toast.info("Converting to MP4… first time may take a moment.");
+        blob = await videoToMp4(clip.blob);
         ext = "mp4";
+      } else if (format === "mp3") {
+        setBusyId(clip.id);
+        toast.info("Extracting MP3 audio… first time may take a moment.");
+        blob = await videoToMp3(clip.blob);
+        ext = "mp3";
       }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -210,7 +216,7 @@ export function Teleprompter() {
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (err) {
       console.error(err);
-      toast.error("Conversion failed");
+      toast.error(err instanceof Error ? err.message : "Conversion failed");
     } finally {
       setBusyId(null);
     }
@@ -221,21 +227,21 @@ export function Teleprompter() {
     setClips((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const convertUpload = async (file: File) => {
+  const convertUpload = async (file: File, format: "mp4" | "mp3") => {
     try {
       setConverting(true);
       toast.info("Converting… this may take a moment.");
-      const mp4 = await webmToMp4(file);
-      const url = URL.createObjectURL(mp4);
+      const converted = format === "mp3" ? await videoToMp3(file) : await videoToMp4(file);
+      const url = URL.createObjectURL(converted);
       const a = document.createElement("a");
       a.href = url;
-      a.download = file.name.replace(/\.(webm|mkv|mov|avi)$/i, "") + ".mp4";
+      a.download = file.name.replace(/\.(webm|mkv|mov|avi|mp4)$/i, "") + `.${format}`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      toast.success("Converted to MP4");
+      toast.success(`Converted to ${format.toUpperCase()}`);
     } catch (err) {
       console.error(err);
-      toast.error("Conversion failed");
+      toast.error(err instanceof Error ? err.message : "Conversion failed");
     } finally {
       setConverting(false);
     }
