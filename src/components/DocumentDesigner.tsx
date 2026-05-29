@@ -109,7 +109,7 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
 
 type LayoutProfile = {
   columns: 1 | 2;
-  fill: "space-between" | "space-between" | "space-evenly";
+  fill: "flex-start" | "space-between" | "space-evenly";
   titleSize: number;
   subtitleSize: number;
   titleMarginTop: number;
