@@ -236,9 +236,10 @@ function mp4TranscodeArgs(opts?: {
 
 export async function videoToMp4(
   input: Blob,
-  opts?: { mirror?: boolean },
+  opts?: { mirror?: boolean; onProgress?: (ratio: number) => void },
 ): Promise<ConversionResult> {
   if (isMp4File(input) && !opts?.mirror) {
+    opts?.onProgress?.(1);
     return {
       blob: input,
       ext: "mp4",
@@ -255,6 +256,7 @@ export async function videoToMp4(
         ["-map", "0:v:0?", "-map", "0:a?", "-c", "copy", "-movflags", "+faststart", "-f", "mp4"],
         "mp4",
         "video/mp4",
+        opts?.onProgress,
       );
       return { blob, ext: "mp4", mimeType: "video/mp4", converted: true };
     } catch (error) {
@@ -284,6 +286,7 @@ export async function videoToMp4(
         mp4TranscodeArgs({ ...profile, mirror: opts?.mirror }),
         "mp4",
         "video/mp4",
+        opts?.onProgress,
       );
       return { blob, ext: "mp4", mimeType: "video/mp4", converted: true };
     } catch (error) {
@@ -298,7 +301,10 @@ export async function videoToMp4(
   );
 }
 
-export async function videoToMp3(input: Blob): Promise<ConversionResult> {
+export async function videoToMp3(
+  input: Blob,
+  opts?: { onProgress?: (ratio: number) => void },
+): Promise<ConversionResult> {
   try {
     const blob = await runConversion(
       input,
@@ -315,6 +321,7 @@ export async function videoToMp3(input: Blob): Promise<ConversionResult> {
       ],
       "mp3",
       "audio/mpeg",
+      opts?.onProgress,
     );
     return { blob, ext: "mp3", mimeType: "audio/mpeg", converted: true };
   } catch (mp3Error) {
@@ -327,6 +334,7 @@ export async function videoToMp3(input: Blob): Promise<ConversionResult> {
       ["-vn", "-map", "0:a:0", "-c:a", "copy", "-f", "ipod"],
       "m4a",
       "audio/mp4",
+      opts?.onProgress,
     );
     return {
       blob,
@@ -344,6 +352,7 @@ export async function videoToMp3(input: Blob): Promise<ConversionResult> {
     ["-vn", "-map", "0:a:0", "-c:a", "aac", "-b:a", "128k", "-f", "ipod"],
     "m4a",
     "audio/mp4",
+    opts?.onProgress,
   );
   return {
     blob,
