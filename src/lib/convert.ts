@@ -58,8 +58,41 @@ async function runConversion(input: Blob, args: string[], outputExt: string, typ
   }
 }
 
+function isMp4Like(input: Blob): boolean {
+  const t = input.type.toLowerCase();
+  if (t.includes("mp4") || t.includes("quicktime")) return true;
+  if (input instanceof File && /\.(mp4|mov|m4v)$/i.test(input.name)) return true;
+  return false;
+}
+
 export async function videoToMp4(input: Blob, opts?: { mirror?: boolean }): Promise<Blob> {
-  const args = ["-map", "0:v:0", "-map", "0:a?", ...(opts?.mirror ? ["-vf", "hflip"] : []), "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart"];
+  // Fast path: iPhone recordings are already H.264 in an mp4/mov container.
+  // Stream-copy instead of re-encoding (libx264 in wasm OOMs on iOS Safari).
+  if (isMp4Like(input) && !opts?.mirror) {
+    try {
+      return await runConversion(
+        input,
+        ["-c", "copy", "-movflags", "+faststart"],
+        "mp4",
+        "video/mp4",
+      );
+    } catch (e) {
+      console.warn("[convert] stream copy failed, falling back to transcode", e);
+    }
+  }
+  // Transcode path. Cap resolution + single-thread to stay within wasm memory on mobile.
+  const vf = [
+    "scale='min(1280,iw)':'-2'",
+    ...(opts?.mirror ? ["hflip"] : []),
+  ].join(",");
+  const args = [
+    "-map", "0:v:0", "-map", "0:a?",
+    "-vf", vf,
+    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28", "-pix_fmt", "yuv420p",
+    "-threads", "1",
+    "-c:a", "aac", "-b:a", "128k",
+    "-movflags", "+faststart",
+  ];
   return runConversion(input, args, "mp4", "video/mp4");
 }
 
