@@ -51,14 +51,14 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
   switch (block.kind) {
     case "heading":
       return (
-        <h2 className="mt-7 text-[19px] font-bold tracking-tight" style={{ color: BRAND.navy }}>
+        <h2 className="mt-4 text-[16px] font-bold tracking-tight" style={{ color: BRAND.navy }}>
           {renderInline(block.text, `h-${index}`)}
         </h2>
       );
     case "subheading":
       return (
         <h3
-          className="mt-5 text-[12px] font-semibold uppercase tracking-[0.16em]"
+          className="mt-3 text-[10.5px] font-semibold uppercase tracking-[0.16em]"
           style={{ color: BRAND.red }}
         >
           {renderInline(block.text, `sh-${index}`)}
@@ -66,17 +66,17 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
       );
     case "paragraph":
       return (
-        <p className="text-[13.5px] leading-[1.7]" style={{ color: BRAND.navy }}>
+        <p className="text-[11.5px] leading-[1.5]" style={{ color: BRAND.navy }}>
           {renderInline(block.text, `p-${index}`)}
         </p>
       );
     case "list":
       return (
-        <ul className="space-y-1.5 text-[13.5px] leading-[1.65]" style={{ color: BRAND.navy }}>
+        <ul className="space-y-1 text-[11.5px] leading-[1.45]" style={{ color: BRAND.navy }}>
           {block.items.map((it, j) => (
-            <li key={j} className="flex gap-3">
+            <li key={j} className="flex gap-2">
               <span
-                className="mt-[9px] inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                className="mt-[7px] inline-block h-1 w-1 shrink-0 rounded-full"
                 style={{ backgroundColor: BRAND.red }}
               />
               <span>{renderInline(it, `li-${index}-${j}`)}</span>
@@ -87,7 +87,7 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
     case "quote":
       return (
         <blockquote
-          className="my-2 border-l-[3px] pl-4 text-[14px] italic leading-[1.65]"
+          className="my-1 border-l-[3px] pl-3 text-[12px] italic leading-[1.5]"
           style={{ borderColor: BRAND.red, color: BRAND.navy }}
         >
           {renderInline(block.text, `q-${index}`)}
@@ -96,7 +96,7 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
     case "callout":
       return (
         <div
-          className="my-2 rounded-md px-4 py-3 text-[13px] font-medium leading-snug"
+          className="my-1 rounded-md px-3 py-2 text-[11.5px] font-medium leading-snug"
           style={{ backgroundColor: BRAND.cream, color: BRAND.navy, borderLeft: `3px solid ${BRAND.red}` }}
         >
           {renderInline(block.text, `c-${index}`)}
