@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, useRef } from "react";
+import { useState, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Printer, Sparkles, Loader2 } from "lucide-react";
@@ -51,32 +51,33 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
   switch (block.kind) {
     case "heading":
       return (
-        <h2 className="mt-4 text-[16px] font-bold tracking-tight" style={{ color: BRAND.navy }}>
-          {renderInline(block.text, `h-${index}`)}
-        </h2>
+        <section className="doc-block doc-block--heading">
+          <h2 className="doc-heading" style={{ color: BRAND.navy }}>
+            {renderInline(block.text, `h-${index}`)}
+          </h2>
+        </section>
       );
     case "subheading":
       return (
-        <h3
-          className="mt-3 text-[10.5px] font-semibold uppercase tracking-[0.16em]"
-          style={{ color: BRAND.red }}
-        >
-          {renderInline(block.text, `sh-${index}`)}
-        </h3>
+        <section className="doc-block doc-block--subheading">
+          <h3 className="doc-subheading" style={{ color: BRAND.red }}>
+            {renderInline(block.text, `sh-${index}`)}
+          </h3>
+        </section>
       );
     case "paragraph":
       return (
-        <p className="text-[11.5px] leading-[1.5]" style={{ color: BRAND.navy }}>
+        <p className="doc-block doc-paragraph" style={{ color: BRAND.navy }}>
           {renderInline(block.text, `p-${index}`)}
         </p>
       );
     case "list":
       return (
-        <ul className="space-y-1 text-[11.5px] leading-[1.45]" style={{ color: BRAND.navy }}>
+        <ul className="doc-block doc-list" style={{ color: BRAND.navy }}>
           {block.items.map((it, j) => (
-            <li key={j} className="flex gap-2">
+            <li key={j} className="doc-list-item">
               <span
-                className="mt-[7px] inline-block h-1 w-1 shrink-0 rounded-full"
+                className="doc-bullet"
                 style={{ backgroundColor: BRAND.red }}
               />
               <span>{renderInline(it, `li-${index}-${j}`)}</span>
@@ -87,7 +88,7 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
     case "quote":
       return (
         <blockquote
-          className="my-1 border-l-[3px] pl-3 text-[12px] italic leading-[1.5]"
+          className="doc-block doc-quote"
           style={{ borderColor: BRAND.red, color: BRAND.navy }}
         >
           {renderInline(block.text, `q-${index}`)}
@@ -96,7 +97,7 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
     case "callout":
       return (
         <div
-          className="my-1 rounded-md px-3 py-2 text-[11.5px] font-medium leading-snug"
+          className="doc-block doc-callout"
           style={{ backgroundColor: BRAND.cream, color: BRAND.navy, borderLeft: `3px solid ${BRAND.red}` }}
         >
           {renderInline(block.text, `c-${index}`)}
@@ -105,12 +106,131 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
   }
 }
 
-/**
- * Scales its children uniformly so they exactly fill the parent box.
- * - If content is too tall, scales down (min 0.55).
- * - If content is short, scales up to fill (max 1.35).
- */
-function AutoFit({ children, deps }: { children: React.ReactNode; deps: unknown[] }) {
+type LayoutProfile = {
+  columns: 1 | 2;
+  fill: "flex-start" | "space-between" | "space-evenly";
+  titleSize: number;
+  subtitleSize: number;
+  titleMarginTop: number;
+  bodyPaddingTop: number;
+  bodyPaddingBottom: number;
+  bodyFont: number;
+  headingFont: number;
+  subheadingFont: number;
+  quoteFont: number;
+  lineHeight: number;
+  blockGap: number;
+  sectionGap: number;
+  listGap: number;
+  minFit: number;
+  maxFit: number;
+};
+
+const getBlockWords = (block: DocBlock) => {
+  const text = block.kind === "list" ? block.items.join(" ") : block.text;
+  return text.trim().split(/\s+/).filter(Boolean).length;
+};
+
+function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
+  const words = doc
+    ? [doc.title, doc.subtitle ?? "", ...doc.blocks.map((block) => (block.kind === "list" ? block.items.join(" ") : block.text))]
+        .join(" ")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length
+    : 0;
+  const blocks = doc?.blocks.length ?? 0;
+  const listItems = doc?.blocks.reduce((sum, block) => sum + (block.kind === "list" ? block.items.length : 0), 0) ?? 0;
+  const useColumns = words > 520 || blocks > 10 || listItems > 10;
+
+  if (words <= 150) {
+    return {
+      columns: 1,
+      fill: "space-evenly",
+      titleSize: 36,
+      subtitleSize: 15,
+      titleMarginTop: 18,
+      bodyPaddingTop: 22,
+      bodyPaddingBottom: 18,
+      bodyFont: 13.5,
+      headingFont: 18,
+      subheadingFont: 11.5,
+      quoteFont: 14,
+      lineHeight: 1.62,
+      blockGap: 14,
+      sectionGap: 8,
+      listGap: 8,
+      minFit: 0.86,
+      maxFit: 1.9,
+    };
+  }
+
+  if (words <= 320) {
+    return {
+      columns: 1,
+      fill: "space-between",
+      titleSize: 31,
+      subtitleSize: 13.5,
+      titleMarginTop: 16,
+      bodyPaddingTop: 18,
+      bodyPaddingBottom: 14,
+      bodyFont: 12.2,
+      headingFont: 16.5,
+      subheadingFont: 10.8,
+      quoteFont: 12.8,
+      lineHeight: 1.52,
+      blockGap: 10,
+      sectionGap: 7,
+      listGap: 6,
+      minFit: 0.78,
+      maxFit: 1.55,
+    };
+  }
+
+  if (!useColumns) {
+    return {
+      columns: 1,
+      fill: "flex-start",
+      titleSize: 27,
+      subtitleSize: 12.4,
+      titleMarginTop: 14,
+      bodyPaddingTop: 14,
+      bodyPaddingBottom: 10,
+      bodyFont: 11.2,
+      headingFont: 15,
+      subheadingFont: 10.2,
+      quoteFont: 11.8,
+      lineHeight: 1.42,
+      blockGap: 7,
+      sectionGap: 5,
+      listGap: 4,
+      minFit: 0.7,
+      maxFit: 1.18,
+    };
+  }
+
+  return {
+    columns: 2,
+    fill: "flex-start",
+    titleSize: words > 850 ? 23 : 25,
+    subtitleSize: words > 850 ? 10.8 : 11.6,
+    titleMarginTop: 11,
+    bodyPaddingTop: 11,
+    bodyPaddingBottom: 8,
+    bodyFont: words > 850 ? 8.8 : 9.6,
+    headingFont: words > 850 ? 11.4 : 12.5,
+    subheadingFont: words > 850 ? 8.2 : 8.8,
+    quoteFont: words > 850 ? 9.2 : 10,
+    lineHeight: words > 850 ? 1.28 : 1.34,
+    blockGap: words > 850 ? 4 : 5,
+    sectionGap: 3,
+    listGap: 2,
+    minFit: 0.62,
+    maxFit: 1.06,
+  };
+}
+
+function DynamicBodyFit({ children, deps, profile }: { children: ReactNode; deps: unknown[]; profile: LayoutProfile }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -121,14 +241,13 @@ function AutoFit({ children, deps }: { children: React.ReactNode; deps: unknown[
     if (!outer || !inner) return;
 
     const fit = () => {
-      // Reset inner to natural size to measure
-      inner.style.transform = "scale(1)";
-      inner.style.width = "100%";
+      inner.style.setProperty("--fit-scale", "1");
       const available = outer.clientHeight;
       const natural = inner.scrollHeight;
       if (!available || !natural) return;
       const raw = available / natural;
-      const next = Math.max(0.5, Math.min(4, raw));
+      const eased = raw >= 1 ? 1 + (raw - 1) * 0.72 : raw * 0.98;
+      const next = Math.max(profile.minFit, Math.min(profile.maxFit, eased));
       setScale((prev) => (Math.abs(prev - next) < 0.01 ? prev : next));
     };
 
@@ -138,17 +257,28 @@ function AutoFit({ children, deps }: { children: React.ReactNode; deps: unknown[
     ro.observe(inner);
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, profile]);
+
+  const flowStyle = {
+    "--fit-scale": scale,
+    "--doc-body-font": `${profile.bodyFont}px`,
+    "--doc-heading-font": `${profile.headingFont}px`,
+    "--doc-subheading-font": `${profile.subheadingFont}px`,
+    "--doc-quote-font": `${profile.quoteFont}px`,
+    "--doc-line": profile.lineHeight,
+    "--doc-block-gap": `${profile.blockGap}px`,
+    "--doc-section-gap": `${profile.sectionGap}px`,
+    "--doc-list-gap": `${profile.listGap}px`,
+    "--doc-fill": profile.fill,
+  } as CSSProperties;
 
   return (
     <div ref={outerRef} className="h-full w-full overflow-hidden">
       <div
         ref={innerRef}
-        style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
-          width: `${100 / scale}%`,
-        }}
+        className="doc-flow"
+        data-columns={profile.columns}
+        style={flowStyle}
       >
         {children}
       </div>
