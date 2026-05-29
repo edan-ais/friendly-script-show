@@ -439,8 +439,11 @@ export function DocumentDesigner() {
             />
 
             {/* Header */}
-            <div className="flex shrink-0 items-end justify-between px-10 pt-7 pb-4">
-              <img src={logoUrl} alt={BRAND.name} className="h-20 w-auto" />
+            <div
+              className="relative z-10 flex shrink-0 items-end justify-between px-10 pt-7 pb-4"
+              style={{ textShadow: "0 1px 0 rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.7)" }}
+            >
+              <img src={logoUrl} alt={BRAND.name} className="h-20 w-auto drop-shadow-[0_2px_3px_rgba(255,255,255,0.8)]" />
               <div className="text-right">
                 {doc?.eyebrow && (
                   <div
@@ -457,7 +460,10 @@ export function DocumentDesigner() {
             </div>
 
             {/* Title block */}
-            <div className="shrink-0 px-10">
+            <div
+              className="relative z-10 shrink-0 px-10"
+              style={{ textShadow: "0 1px 0 rgba(255,255,255,0.9), 0 0 10px rgba(255,255,255,0.75)" }}
+            >
               <div className="h-px w-full" style={{ backgroundColor: `${BRAND.navy}15` }} />
               <h1
                 className="font-extrabold leading-[1.1]"
@@ -478,8 +484,12 @@ export function DocumentDesigner() {
 
             {/* Body — auto-fits to remaining vertical space */}
             <div
-              className="min-h-0 flex-1 px-10"
-              style={{ paddingTop: `${profile.bodyPaddingTop}px`, paddingBottom: `${profile.bodyPaddingBottom}px` }}
+              className="relative z-10 min-h-0 flex-1 px-10"
+              style={{
+                paddingTop: `${profile.bodyPaddingTop}px`,
+                paddingBottom: `${profile.bodyPaddingBottom}px`,
+                textShadow: "0 1px 0 rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.7)",
+              }}
             >
               {!doc ? (
                 <div
@@ -499,8 +509,8 @@ export function DocumentDesigner() {
 
             {/* Footer slogan */}
             <div
-              className="shrink-0 px-10 py-3 text-center text-[10px] italic tracking-wide"
-              style={{ borderTop: `1px solid ${BRAND.navy}15`, color: BRAND.navy, opacity: 0.7 }}
+              className="relative z-10 shrink-0 px-10 py-3 text-center text-[10px] italic tracking-wide"
+              style={{ borderTop: `1px solid ${BRAND.navy}15`, color: BRAND.navy, opacity: 0.7, textShadow: "0 1px 0 rgba(255,255,255,0.9)" }}
             >
               {BRAND.tagline}
             </div>
