@@ -25,9 +25,10 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { listClips, saveClip, deleteClip, type SavedClip } from "@/lib/video-bank";
-import { videoToMp3, videoToMp4, webmToMp4 } from "@/lib/convert";
+import { videoToMp4, webmToMp4 } from "@/lib/convert";
 
 const SAMPLE = `Welcome to Prompter.
 
