@@ -232,6 +232,33 @@ export function Teleprompter() {
         </div>
       )}
 
+      {/* Floating zoom controls — visible during preview & recording */}
+      {(previewing || recording) && (
+        <div className="absolute top-1/2 right-4 -translate-y-1/2 z-30 flex flex-col gap-2">
+          <Button
+            size="icon"
+            variant="secondary"
+            className="rounded-full size-11 shadow-xl"
+            onClick={() => setZoom((z) => Math.min(3, +(z + 0.1).toFixed(2)))}
+            aria-label="Zoom in"
+          >
+            +
+          </Button>
+          <div className="text-center text-xs font-medium text-white/80 bg-black/50 rounded-full py-1 tabular-nums">
+            {zoom.toFixed(1)}×
+          </div>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="rounded-full size-11 shadow-xl"
+            onClick={() => setZoom((z) => Math.max(1, +(z - 0.1).toFixed(2)))}
+            aria-label="Zoom out"
+          >
+            −
+          </Button>
+        </div>
+      )}
+
       {/* Header — hidden in chromeless mode */}
       {!recording && !previewing && (
         <header className="absolute top-0 inset-x-0 z-30 border-b border-white/10 bg-black/40 backdrop-blur px-6 py-3 flex items-center justify-between">
