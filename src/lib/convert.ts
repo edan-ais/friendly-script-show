@@ -223,11 +223,6 @@ function mp4TranscodeArgs(opts?: {
   ];
 }
 
-function originalResult(input: Blob, note?: string): ConversionResult {
-  const ext = extensionFor(input);
-  return { blob: input, ext, mimeType: input.type || mimeForExt(ext), converted: false, note };
-}
-
 export async function videoToMp4(
   input: Blob,
   opts?: { mirror?: boolean },
