@@ -471,6 +471,7 @@ export function Teleprompter() {
             onDelete={removeClip}
             onDownload={downloadClip}
             busyId={busyId}
+            progress={convertProgress}
           />
         )}
         {converterOpen && (
@@ -478,6 +479,7 @@ export function Teleprompter() {
             onClose={() => setConverterOpen(false)}
             onConvert={convertUpload}
             converting={converting}
+            progress={convertProgress}
           />
         )}
       </div>
