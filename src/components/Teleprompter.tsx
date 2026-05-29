@@ -484,7 +484,7 @@ function VideoBank({
   clips: SavedClip[];
   onClose: () => void;
   onDelete: (id: string) => void;
-  onDownload: (clip: SavedClip, asMp4: boolean) => void;
+  onDownload: (clip: SavedClip, format: DownloadFormat) => void;
   busyId: string | null;
 }) {
   return (
@@ -522,7 +522,7 @@ function BankCard({
 }: {
   clip: SavedClip;
   onDelete: (id: string) => void;
-  onDownload: (clip: SavedClip, asMp4: boolean) => void;
+  onDownload: (clip: SavedClip, format: DownloadFormat) => void;
   busy: boolean;
 }) {
   const [url, setUrl] = useState<string>("");
@@ -538,10 +538,13 @@ function BankCard({
         {new Date(clip.createdAt).toLocaleString()} · {clip.durationSec}s · {clip.ext.toUpperCase()}
       </div>
       <div className="flex gap-2">
-        <Button size="sm" variant="secondary" className="flex-1" onClick={() => onDownload(clip, true)} disabled={busy}>
+        <Button size="sm" variant="secondary" className="flex-1" onClick={() => onDownload(clip, "mp4")} disabled={busy}>
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} MP4
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => onDownload(clip, false)} disabled={busy}>
+        <Button size="sm" variant="secondary" onClick={() => onDownload(clip, "mp3")} disabled={busy}>
+          MP3
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => onDownload(clip, "original")} disabled={busy}>
           .{clip.ext}
         </Button>
         <Button size="sm" variant="destructive" onClick={() => onDelete(clip.id)} disabled={busy}>
@@ -557,10 +560,11 @@ function ConverterModal({
   onClose, onConvert, converting,
 }: {
   onClose: () => void;
-  onConvert: (file: File) => void;
+  onConvert: (file: File, format: "mp4" | "mp3") => void;
   converting: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const formatRef = useRef<"mp4" | "mp3">("mp4");
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
       <div
@@ -572,7 +576,7 @@ function ConverterModal({
           <Button size="icon" variant="ghost" onClick={onClose} disabled={converting}><X className="size-4" /></Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Convert any WebM (or MOV/MKV) clip to MP4 right in your browser. First conversion downloads ~25 MB of converter code.
+          Convert any WebM, MOV, MKV, AVI, or MP4 clip right in your browser.
         </p>
         <input
           ref={inputRef}
@@ -581,12 +585,18 @@ function ConverterModal({
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) onConvert(f);
+            if (f) onConvert(f, formatRef.current);
+            e.currentTarget.value = "";
           }}
         />
-        <Button size="lg" onClick={() => inputRef.current?.click()} disabled={converting}>
-          {converting ? <><Loader2 className="size-4 animate-spin" /> Converting…</> : <><FileVideo className="size-4" /> Pick a video</>}
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="lg" onClick={() => { formatRef.current = "mp4"; inputRef.current?.click(); }} disabled={converting}>
+            {converting ? <Loader2 className="size-4 animate-spin" /> : <FileVideo className="size-4" />} MP4
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => { formatRef.current = "mp3"; inputRef.current?.click(); }} disabled={converting}>
+            {converting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} MP3
+          </Button>
+        </div>
       </div>
     </div>
   );
