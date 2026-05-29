@@ -138,10 +138,25 @@ export function DocumentDesigner() {
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #f5f1ec 0%, #ece6df 100%)" }}>
       <style>{`
+        .print-page, .print-page * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
         @media print {
-          body { background: white !important; }
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          body * { visibility: hidden !important; }
+          .print-root, .print-root * { visibility: visible !important; }
+          .print-root { position: absolute !important; inset: 0 !important; }
           .no-print { display: none !important; }
-          .print-page { box-shadow: none !important; margin: 0 !important; transform: none !important; }
+          .print-page {
+            box-shadow: none !important;
+            margin: 0 !important;
+            transform: none !important;
+            width: 8.5in !important;
+            height: 11in !important;
+            max-width: none !important;
+          }
         }
         @page { size: letter; margin: 0; }
       `}</style>
@@ -191,7 +206,7 @@ export function DocumentDesigner() {
         </aside>
 
         {/* Preview / Print page */}
-        <div className="flex justify-center">
+        <div className="print-root flex justify-center">
           <div
             className="print-page relative aspect-[8.5/11] w-full max-w-[8.5in] overflow-hidden shadow-[0_20px_60px_-20px_rgba(14,23,48,0.35)]"
             style={{ backgroundColor: BRAND.paper, fontFamily: "Inter, system-ui, sans-serif", color: BRAND.navy }}
