@@ -136,6 +136,7 @@ async function runConversion(
   args: string[],
   outputExt: ConversionResult["ext"],
   type: string,
+  onProgress?: (ratio: number) => void,
 ): Promise<Blob> {
   return queueConversion(async () => {
     const ff = await getFFmpeg();
@@ -144,6 +145,14 @@ async function runConversion(
     const outputName = `out-${id}.${outputExt}`;
     let cleanupInput: (() => Promise<void>) | null = null;
     let inputPath = `in-${id}.${extensionFor(input)}`;
+    const progressHandler = onProgress
+      ? ({ progress }: { progress: number }) => {
+          if (Number.isFinite(progress)) {
+            onProgress(Math.max(0, Math.min(1, progress)));
+          }
+        }
+      : null;
+    if (progressHandler) ff.on("progress", progressHandler);
 
     try {
       try {
@@ -161,6 +170,7 @@ async function runConversion(
       const code = await ff.exec(["-hide_banner", "-i", inputPath, ...args, outputName]);
       if (code !== 0) throw new Error(`FFmpeg exited with code ${code}`);
       const data = await ff.readFile(outputName);
+      if (onProgress) onProgress(1);
       return blobFromData(data, type);
     } catch (error) {
       const message =
@@ -173,6 +183,7 @@ async function runConversion(
         resetFFmpeg();
       throw userFriendlyError(error);
     } finally {
+      if (progressHandler) ff.off("progress", progressHandler);
       await cleanupInput?.();
       await ff.deleteFile(outputName).catch(() => {});
     }
@@ -225,9 +236,10 @@ function mp4TranscodeArgs(opts?: {
 
 export async function videoToMp4(
   input: Blob,
-  opts?: { mirror?: boolean },
+  opts?: { mirror?: boolean; onProgress?: (ratio: number) => void },
 ): Promise<ConversionResult> {
   if (isMp4File(input) && !opts?.mirror) {
+    opts?.onProgress?.(1);
     return {
       blob: input,
       ext: "mp4",
@@ -244,6 +256,7 @@ export async function videoToMp4(
         ["-map", "0:v:0?", "-map", "0:a?", "-c", "copy", "-movflags", "+faststart", "-f", "mp4"],
         "mp4",
         "video/mp4",
+        opts?.onProgress,
       );
       return { blob, ext: "mp4", mimeType: "video/mp4", converted: true };
     } catch (error) {
@@ -273,6 +286,7 @@ export async function videoToMp4(
         mp4TranscodeArgs({ ...profile, mirror: opts?.mirror }),
         "mp4",
         "video/mp4",
+        opts?.onProgress,
       );
       return { blob, ext: "mp4", mimeType: "video/mp4", converted: true };
     } catch (error) {
@@ -287,7 +301,10 @@ export async function videoToMp4(
   );
 }
 
-export async function videoToMp3(input: Blob): Promise<ConversionResult> {
+export async function videoToMp3(
+  input: Blob,
+  opts?: { onProgress?: (ratio: number) => void },
+): Promise<ConversionResult> {
   try {
     const blob = await runConversion(
       input,
@@ -304,6 +321,7 @@ export async function videoToMp3(input: Blob): Promise<ConversionResult> {
       ],
       "mp3",
       "audio/mpeg",
+      opts?.onProgress,
     );
     return { blob, ext: "mp3", mimeType: "audio/mpeg", converted: true };
   } catch (mp3Error) {
@@ -316,6 +334,7 @@ export async function videoToMp3(input: Blob): Promise<ConversionResult> {
       ["-vn", "-map", "0:a:0", "-c:a", "copy", "-f", "ipod"],
       "m4a",
       "audio/mp4",
+      opts?.onProgress,
     );
     return {
       blob,
@@ -333,6 +352,7 @@ export async function videoToMp3(input: Blob): Promise<ConversionResult> {
     ["-vn", "-map", "0:a:0", "-c:a", "aac", "-b:a", "128k", "-f", "ipod"],
     "m4a",
     "audio/mp4",
+    opts?.onProgress,
   );
   return {
     blob,

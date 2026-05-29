@@ -25,9 +25,10 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { listClips, saveClip, deleteClip, type SavedClip } from "@/lib/video-bank";
-import { videoToMp3, videoToMp4, webmToMp4 } from "@/lib/convert";
+import { videoToMp4, webmToMp4 } from "@/lib/convert";
 
 const SAMPLE = `Welcome to Prompter.
 
@@ -38,7 +39,17 @@ Click record to capture yourself reading — the video saves straight to your ba
 Adjust speed and font size on the setup screen. Mirror the text if you're reading off a reflective glass rig.`;
 
 type Mode = "setup" | "stage";
-type DownloadFormat = "original" | "mp4" | "mp3";
+type DownloadFormat = "original" | "mp4";
+
+type ConvertProgress = { ratio: number; startedAt: number } | null;
+
+function formatEta(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  if (seconds < 60) return `${Math.ceil(seconds)}s`;
+  const m = Math.floor(seconds / 60);
+  const s = Math.ceil(seconds % 60);
+  return `${m}m ${s}s`;
+}
 
 function safeName(name: string) {
   return name.replace(/[^a-z0-9-_]+/gi, "_");
@@ -82,6 +93,7 @@ export function Teleprompter() {
   const [converterOpen, setConverterOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
+  const [convertProgress, setConvertProgress] = useState<ConvertProgress>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -257,46 +269,59 @@ export function Teleprompter() {
   const fmt = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-  const downloadClip = useCallback(async (clip: SavedClip, format: DownloadFormat) => {
-    try {
-      let blob = clip.blob;
-      let ext: string = clip.ext;
-      if (format === "mp4") {
-        setBusyId(clip.id);
-        toast.info("Converting to MP4… first time may take a moment.");
-        const result = await videoToMp4(clip.blob);
-        blob = result.blob;
-        ext = result.ext;
-        if (result.note) toast.info(result.note);
-      } else if (format === "mp3") {
-        setBusyId(clip.id);
-        toast.info("Extracting MP3 audio… first time may take a moment.");
-        const result = await videoToMp3(clip.blob);
-        blob = result.blob;
-        ext = result.ext;
-        if (result.note) toast.info(result.note);
+  const downloadClip = useCallback(
+    async (clip: SavedClip, format: DownloadFormat) => {
+      try {
+        let blob = clip.blob;
+        let ext: string = clip.ext;
+        if (format === "mp4") {
+          setBusyId(clip.id);
+          setConvertProgress({ ratio: 0, startedAt: performance.now() });
+          toast.info("Converting to MP4… first time may take a moment.");
+          const result = await videoToMp4(clip.blob, {
+            onProgress: (ratio) =>
+              setConvertProgress((prev) => ({
+                ratio,
+                startedAt: prev?.startedAt ?? performance.now(),
+              })),
+          });
+          blob = result.blob;
+          ext = result.ext;
+          if (result.note) toast.info(result.note);
+        }
+        downloadBlob(blob, `${safeName(clip.name)}.${ext}`);
+        if (ext === "mp4")
+          toast.success(
+            "MP4 ready. On iPhone, open it from Downloads and tap Share → Save Video.",
+          );
+      } catch (err) {
+        console.error(err);
+        toast.error(err instanceof Error ? err.message : "Conversion failed");
+      } finally {
+        setBusyId(null);
+        setConvertProgress(null);
       }
-      downloadBlob(blob, `${safeName(clip.name)}.${ext}`);
-      if (ext === "mp4")
-        toast.success("MP4 ready. On iPhone, open it from Downloads and tap Share → Save Video.");
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Conversion failed");
-    } finally {
-      setBusyId(null);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const removeClip = async (id: string) => {
     await deleteClip(id);
     setClips((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const convertUpload = async (file: File, format: "mp4" | "mp3") => {
+  const convertUpload = async (file: File) => {
     try {
       setConverting(true);
+      setConvertProgress({ ratio: 0, startedAt: performance.now() });
       toast.info("Converting… this may take a moment.");
-      const result = format === "mp3" ? await videoToMp3(file) : await webmToMp4(file);
+      const result = await webmToMp4(file, {
+        onProgress: (ratio) =>
+          setConvertProgress((prev) => ({
+            ratio,
+            startedAt: prev?.startedAt ?? performance.now(),
+          })),
+      });
       downloadBlob(
         result.blob,
         file.name.replace(/\.(webm|mkv|mov|avi|mp4|m4v)$/i, "") + `.${result.ext}`,
@@ -316,6 +341,7 @@ export function Teleprompter() {
       toast.error(err instanceof Error ? err.message : "Conversion failed", { duration: 9000 });
     } finally {
       setConverting(false);
+      setConvertProgress(null);
     }
   };
 
@@ -445,6 +471,7 @@ export function Teleprompter() {
             onDelete={removeClip}
             onDownload={downloadClip}
             busyId={busyId}
+            progress={convertProgress}
           />
         )}
         {converterOpen && (
@@ -452,6 +479,7 @@ export function Teleprompter() {
             onClose={() => setConverterOpen(false)}
             onConvert={convertUpload}
             converting={converting}
+            progress={convertProgress}
           />
         )}
       </div>
@@ -644,6 +672,34 @@ export function Teleprompter() {
   );
 }
 
+// ============ Conversion Progress Bar ============
+function ConvertProgressBar({ progress }: { progress: ConvertProgress }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    if (!progress) return;
+    const id = window.setInterval(() => force((n) => n + 1), 500);
+    return () => window.clearInterval(id);
+  }, [progress]);
+  if (!progress) return null;
+  const pct = Math.max(2, Math.min(100, Math.round(progress.ratio * 100)));
+  const elapsedSec = (performance.now() - progress.startedAt) / 1000;
+  const etaSec =
+    progress.ratio > 0.01 ? elapsedSec / progress.ratio - elapsedSec : Number.POSITIVE_INFINITY;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Progress value={pct} className="h-2" />
+      <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+        <span>{pct}%</span>
+        <span>
+          {progress.ratio > 0.01 && Number.isFinite(etaSec)
+            ? `~${formatEta(etaSec)} left`
+            : "Estimating…"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ============ Video Bank Modal ============
 function VideoBank({
   clips,
@@ -651,12 +707,14 @@ function VideoBank({
   onDelete,
   onDownload,
   busyId,
+  progress,
 }: {
   clips: SavedClip[];
   onClose: () => void;
   onDelete: (id: string) => void;
   onDownload: (clip: SavedClip, format: DownloadFormat) => void;
   busyId: string | null;
+  progress: ConvertProgress;
 }) {
   return (
     <div
@@ -667,12 +725,10 @@ function VideoBank({
         className="bg-card text-card-foreground rounded-xl border border-border w-full max-w-3xl max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Library className="size-5" />
-            <h2 className="text-lg font-bold">Video bank</h2>
-            <span className="text-sm text-muted-foreground">({clips.length})</span>
-          </div>
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Library className="size-5" /> Video Bank
+          </h2>
           <Button size="icon" variant="ghost" onClick={onClose}>
             <X className="size-4" />
           </Button>
@@ -691,6 +747,7 @@ function VideoBank({
               onDelete={onDelete}
               onDownload={onDownload}
               busy={busyId === c.id}
+              progress={busyId === c.id ? progress : null}
             />
           ))}
         </div>
@@ -704,11 +761,13 @@ function BankCard({
   onDelete,
   onDownload,
   busy,
+  progress,
 }: {
   clip: SavedClip;
   onDelete: (id: string) => void;
   onDownload: (clip: SavedClip, format: DownloadFormat) => void;
   busy: boolean;
+  progress: ConvertProgress;
 }) {
   const [url, setUrl] = useState<string>("");
   useEffect(() => {
@@ -722,6 +781,7 @@ function BankCard({
       <div className="text-xs text-muted-foreground">
         {new Date(clip.createdAt).toLocaleString()} · {clip.durationSec}s · {clip.ext.toUpperCase()}
       </div>
+      {busy && <ConvertProgressBar progress={progress} />}
       <div className="flex gap-2">
         <Button
           size="sm"
@@ -730,15 +790,7 @@ function BankCard({
           onClick={() => onDownload(clip, "mp4")}
           disabled={busy}
         >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} MP4
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onDownload(clip, "mp3")}
-          disabled={busy}
-        >
-          MP3
+          <Download className="size-4" /> MP4
         </Button>
         <Button
           size="sm"
@@ -761,13 +813,14 @@ function ConverterModal({
   onClose,
   onConvert,
   converting,
+  progress,
 }: {
   onClose: () => void;
-  onConvert: (file: File, format: "mp4" | "mp3") => void;
+  onConvert: (file: File) => void;
   converting: boolean;
+  progress: ConvertProgress;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const formatRef = useRef<"mp4" | "mp3">("mp4");
   return (
     <div
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
@@ -796,43 +849,23 @@ function ConverterModal({
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) onConvert(f, formatRef.current);
+            if (f) onConvert(f);
             e.currentTarget.value = "";
           }}
         />
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            size="lg"
-            onClick={() => {
-              formatRef.current = "mp4";
-              inputRef.current?.click();
-            }}
-            disabled={converting}
-          >
-            {converting ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <FileVideo className="size-4" />
-            )}{" "}
-            MP4
-          </Button>
-          <Button
-            size="lg"
-            variant="secondary"
-            onClick={() => {
-              formatRef.current = "mp3";
-              inputRef.current?.click();
-            }}
-            disabled={converting}
-          >
-            {converting ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Download className="size-4" />
-            )}{" "}
-            MP3
-          </Button>
-        </div>
+        {converting && <ConvertProgressBar progress={progress} />}
+        <Button
+          size="lg"
+          onClick={() => inputRef.current?.click()}
+          disabled={converting}
+        >
+          {converting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <FileVideo className="size-4" />
+          )}{" "}
+          Choose WebM to convert
+        </Button>
       </div>
     </div>
   );
