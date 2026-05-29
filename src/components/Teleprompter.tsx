@@ -197,6 +197,7 @@ export function Teleprompter() {
           </div>
         </div>
       </div>
+      )}
 
       {/* REC badge — visible while recording */}
       {recording && (
