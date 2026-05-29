@@ -15,7 +15,10 @@ async function getFFmpeg(): Promise<FFmpeg> {
         wasmURL: "/ffmpeg/ffmpeg-core.wasm",
       });
       return ff;
-    })();
+    })().catch((error) => {
+      ffmpegPromise = null;
+      throw error;
+    });
   }
   return ffmpegPromise;
 }
@@ -37,17 +40,18 @@ function blobFromData(data: Awaited<ReturnType<FFmpeg["readFile"]>>, type: strin
   return new Blob([copy], { type });
 }
 
-async function runConversion(input: Blob, args: string[], outputName: string): Promise<Blob> {
+async function runConversion(input: Blob, args: string[], outputExt: string, type: string): Promise<Blob> {
   const ff = await getFFmpeg();
   const { fetchFile } = await import("@ffmpeg/util");
   const id = ++jobId;
   const inputName = `in-${id}.${extensionFor(input)}`;
+  const outputName = `out-${id}.${outputExt}`;
   await ff.writeFile(inputName, await fetchFile(input));
   try {
     const code = await ff.exec(["-i", inputName, ...args, outputName]);
     if (code !== 0) throw new Error(`FFmpeg exited with code ${code}`);
     const data = await ff.readFile(outputName);
-    return blobFromData(data, "video/mp4");
+    return blobFromData(data, type);
   } finally {
     await ff.deleteFile(inputName).catch(() => {});
     await ff.deleteFile(outputName).catch(() => {});
@@ -55,9 +59,8 @@ async function runConversion(input: Blob, args: string[], outputName: string): P
 }
 
 export async function videoToMp4(input: Blob, opts?: { mirror?: boolean }): Promise<Blob> {
-  const outputName = `out-${jobId + 1}.mp4`;
   const args = ["-map", "0:v:0", "-map", "0:a?", ...(opts?.mirror ? ["-vf", "hflip"] : []), "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart"];
-  return runConversion(input, args, outputName);
+  return runConversion(input, args, "mp4", "video/mp4");
 }
 
 export async function videoToMp3(input: Blob): Promise<Blob> {
