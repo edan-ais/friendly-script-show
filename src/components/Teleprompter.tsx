@@ -302,11 +302,23 @@ export function Teleprompter() {
             <div className="flex flex-col gap-3 pt-4 border-t border-border">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Last recording</Label>
               <video src={recordedUrl} controls className="w-full rounded-lg border border-border" />
-              <Button asChild variant="secondary">
-                <a href={recordedUrl} download={`prompter-${Date.now()}.webm`}>
-                  <Download className="size-4" /> Download
-                </a>
-              </Button>
+              <div className="flex gap-2">
+                <Button asChild variant="secondary" className="flex-1">
+                  <a href={recordedUrl} download={`prompter-${Date.now()}.webm`}>
+                    <Download className="size-4" /> Download
+                  </a>
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    URL.revokeObjectURL(recordedUrl);
+                    setRecordedUrl(null);
+                  }}
+                  aria-label="Delete recording"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </div>
           )}
         </aside>
