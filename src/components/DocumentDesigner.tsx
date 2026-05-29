@@ -450,15 +450,15 @@ export function DocumentDesigner() {
             <div className="shrink-0 px-10">
               <div className="h-px w-full" style={{ backgroundColor: `${BRAND.navy}15` }} />
               <h1
-                className="mt-4 text-[26px] font-extrabold leading-[1.1] tracking-tight"
-                style={{ color: BRAND.navy }}
+                className="font-extrabold leading-[1.1]"
+                style={{ color: BRAND.navy, fontSize: `${profile.titleSize}px`, marginTop: `${profile.titleMarginTop}px`, letterSpacing: 0 }}
               >
                 {doc?.title || "Your document title appears here"}
               </h1>
               {doc?.subtitle && (
                 <p
-                  className="mt-2 text-[12.5px] leading-snug"
-                  style={{ color: BRAND.navy, opacity: 0.7 }}
+                  className="mt-2 leading-snug"
+                  style={{ color: BRAND.navy, opacity: 0.7, fontSize: `${profile.subtitleSize}px` }}
                 >
                   {doc.subtitle}
                 </p>
@@ -467,7 +467,10 @@ export function DocumentDesigner() {
             </div>
 
             {/* Body — auto-fits to remaining vertical space */}
-            <div className="min-h-0 flex-1 px-10 pt-4 pb-3">
+            <div
+              className="min-h-0 flex-1 px-10"
+              style={{ paddingTop: `${profile.bodyPaddingTop}px`, paddingBottom: `${profile.bodyPaddingBottom}px` }}
+            >
               {!doc ? (
                 <div
                   className="mt-6 rounded-lg border border-dashed p-6 text-center text-sm"
@@ -476,13 +479,11 @@ export function DocumentDesigner() {
                   Paste your text on the left and click <span className="font-semibold">Format with AI</span> to generate a branded one-pager.
                 </div>
               ) : (
-                <AutoFit deps={[doc]}>
-                  <div className="space-y-2">
-                    {doc.blocks.map((b, i) => (
-                      <BlockView key={i} block={b} index={i} />
-                    ))}
-                  </div>
-                </AutoFit>
+                <DynamicBodyFit deps={[doc]} profile={profile}>
+                  {doc.blocks.map((b, i) => (
+                    <BlockView key={i} block={b} index={i} />
+                  ))}
+                </DynamicBodyFit>
               )}
             </div>
 
