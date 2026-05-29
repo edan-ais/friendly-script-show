@@ -136,6 +136,7 @@ async function runConversion(
   args: string[],
   outputExt: ConversionResult["ext"],
   type: string,
+  onProgress?: (ratio: number) => void,
 ): Promise<Blob> {
   return queueConversion(async () => {
     const ff = await getFFmpeg();
@@ -144,6 +145,14 @@ async function runConversion(
     const outputName = `out-${id}.${outputExt}`;
     let cleanupInput: (() => Promise<void>) | null = null;
     let inputPath = `in-${id}.${extensionFor(input)}`;
+    const progressHandler = onProgress
+      ? ({ progress }: { progress: number }) => {
+          if (Number.isFinite(progress)) {
+            onProgress(Math.max(0, Math.min(1, progress)));
+          }
+        }
+      : null;
+    if (progressHandler) ff.on("progress", progressHandler);
 
     try {
       try {
@@ -161,6 +170,7 @@ async function runConversion(
       const code = await ff.exec(["-hide_banner", "-i", inputPath, ...args, outputName]);
       if (code !== 0) throw new Error(`FFmpeg exited with code ${code}`);
       const data = await ff.readFile(outputName);
+      if (onProgress) onProgress(1);
       return blobFromData(data, type);
     } catch (error) {
       const message =
@@ -173,6 +183,7 @@ async function runConversion(
         resetFFmpeg();
       throw userFriendlyError(error);
     } finally {
+      if (progressHandler) ff.off("progress", progressHandler);
       await cleanupInput?.();
       await ff.deleteFile(outputName).catch(() => {});
     }
