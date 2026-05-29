@@ -23,6 +23,7 @@ export function Teleprompter() {
   const [recording, setRecording] = useState(false);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [previewing, setPreviewing] = useState(false);
   const [camReady, setCamReady] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
