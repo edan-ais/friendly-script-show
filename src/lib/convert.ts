@@ -34,6 +34,6 @@ export async function webmToMp4(input: Blob, opts?: { mirror?: boolean }): Promi
   const data = await ff.readFile(outputName);
   await ff.deleteFile(inputName).catch(() => {});
   await ff.deleteFile(outputName).catch(() => {});
-  const arr = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data as ArrayBuffer);
-  return new Blob([arr], { type: "video/mp4" });
+  const buf = typeof data === "string" ? new TextEncoder().encode(data).buffer : (data as Uint8Array).buffer;
+  return new Blob([buf as ArrayBuffer], { type: "video/mp4" });
 }
