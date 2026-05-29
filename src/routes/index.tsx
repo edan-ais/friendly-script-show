@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Teleprompter } from "@/components/Teleprompter";
 
 export const Route = createFileRoute("/")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Prompter — Record with a teleprompter" },
