@@ -350,8 +350,13 @@ export function Teleprompter() {
   if (mode === "setup") {
     return (
       <div className="min-h-screen w-full bg-background text-foreground">
-        <header className="border-b border-border bg-card/40 backdrop-blur px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+      <header className="border-b border-border bg-card/40 backdrop-blur px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" asChild className="-ml-2">
+              <Link to="/">
+                <ArrowLeft className="size-5" />
+              </Link>
+            </Button>
             <div className="size-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">
               P
             </div>
