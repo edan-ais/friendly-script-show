@@ -105,6 +105,57 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
   }
 }
 
+/**
+ * Scales its children uniformly so they exactly fill the parent box.
+ * - If content is too tall, scales down (min 0.55).
+ * - If content is short, scales up to fill (max 1.35).
+ */
+function AutoFit({ children, deps }: { children: React.ReactNode; deps: unknown[] }) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+
+    const fit = () => {
+      // Reset inner to natural size to measure
+      inner.style.transform = "scale(1)";
+      inner.style.width = "100%";
+      const available = outer.clientHeight;
+      const natural = inner.scrollHeight;
+      if (!available || !natural) return;
+      const raw = available / natural;
+      const next = Math.max(0.55, Math.min(1.35, raw));
+      setScale(next);
+    };
+
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(outer);
+    ro.observe(inner);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return (
+    <div ref={outerRef} className="h-full w-full overflow-hidden">
+      <div
+        ref={innerRef}
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          width: `${100 / scale}%`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function DocumentDesigner() {
   const [raw, setRaw] = useState(SAMPLE);
   const [doc, setDoc] = useState<StructuredDoc | null>(null);
