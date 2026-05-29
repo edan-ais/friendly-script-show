@@ -1,8 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Play, Pause, RotateCcw, Circle, Square, Download, Type, Gauge,
-  FlipHorizontal, Trash2, Eye, EyeOff, ZoomIn, ArrowLeft, Video,
-  Library, FileVideo, Loader2, X,
+  Play,
+  Pause,
+  RotateCcw,
+  Circle,
+  Square,
+  Download,
+  Type,
+  Gauge,
+  FlipHorizontal,
+  Trash2,
+  Eye,
+  EyeOff,
+  ZoomIn,
+  ArrowLeft,
+  Video,
+  Library,
+  FileVideo,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -29,7 +45,9 @@ function safeName(name: string) {
 }
 
 function downloadBlob(blob: Blob, filename: string) {
-  const nav = navigator as Navigator & { msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => boolean };
+  const nav = navigator as Navigator & {
+    msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => boolean;
+  };
   if (nav.msSaveOrOpenBlob) {
     nav.msSaveOrOpenBlob(blob, filename);
     return;
@@ -76,7 +94,9 @@ export function Teleprompter() {
 
   // Load saved clips on mount
   useEffect(() => {
-    listClips().then(setClips).catch(() => {});
+    listClips()
+      .then(setClips)
+      .catch(() => {});
   }, []);
 
   // Webcam — only when on stage
@@ -127,13 +147,18 @@ export function Teleprompter() {
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, [playing, speed]);
 
   // Recording timer
   useEffect(() => {
     if (!recording) return;
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - recStartRef.current) / 1000)), 250);
+    const id = setInterval(
+      () => setElapsed(Math.floor((Date.now() - recStartRef.current) / 1000)),
+      250,
+    );
     return () => clearInterval(id);
   }, [recording]);
 
@@ -178,14 +203,18 @@ export function Teleprompter() {
     ];
     const mime = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
     const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-    rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+    rec.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
     rec.onstop = async () => {
       const type = rec.mimeType || "video/webm";
       const blob = new Blob(chunksRef.current, { type });
       const ext: "webm" | "mp4" = type.includes("mp4") ? "mp4" : "webm";
       const durationSec = Math.floor((Date.now() - recStartRef.current) / 1000);
       const saved = await saveClip({
-        blob, ext, durationSec,
+        blob,
+        ext,
+        durationSec,
         name: `Take ${new Date().toLocaleString()}`,
       });
       setClips((prev) => [saved, ...prev]);
@@ -208,8 +237,13 @@ export function Teleprompter() {
     let n = 3;
     const tick = () => {
       n -= 1;
-      if (n <= 0) { setCountdown(0); beginRecording(); }
-      else { setCountdown(n); setTimeout(tick, 1000); }
+      if (n <= 0) {
+        setCountdown(0);
+        beginRecording();
+      } else {
+        setCountdown(n);
+        setTimeout(tick, 1000);
+      }
     };
     setTimeout(tick, 1000);
   };
@@ -220,7 +254,8 @@ export function Teleprompter() {
     setPlaying(false);
   };
 
-  const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const fmt = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
   const downloadClip = useCallback(async (clip: SavedClip, format: DownloadFormat) => {
     try {
@@ -242,7 +277,8 @@ export function Teleprompter() {
         if (result.note) toast.info(result.note);
       }
       downloadBlob(blob, `${safeName(clip.name)}.${ext}`);
-      if (ext === "mp4") toast.success("MP4 ready. On iPhone, open it from Downloads and tap Share → Save Video.");
+      if (ext === "mp4")
+        toast.success("MP4 ready. On iPhone, open it from Downloads and tap Share → Save Video.");
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Conversion failed");
@@ -261,9 +297,19 @@ export function Teleprompter() {
       setConverting(true);
       toast.info("Converting… this may take a moment.");
       const result = format === "mp3" ? await videoToMp3(file) : await webmToMp4(file);
-      downloadBlob(result.blob, file.name.replace(/\.(webm|mkv|mov|avi|mp4|m4v)$/i, "") + `.${result.ext}`);
-      toast.success(result.converted ? `Saved as ${result.ext.toUpperCase()}` : `Downloaded ${result.ext.toUpperCase()}`);
-      if (result.ext === "mp4") toast.info("On iPhone, open the MP4 from Downloads and tap Share → Save Video to put it in Photos.");
+      downloadBlob(
+        result.blob,
+        file.name.replace(/\.(webm|mkv|mov|avi|mp4|m4v)$/i, "") + `.${result.ext}`,
+      );
+      toast.success(
+        result.converted
+          ? `Saved as ${result.ext.toUpperCase()}`
+          : `Downloaded ${result.ext.toUpperCase()}`,
+      );
+      if (result.ext === "mp4")
+        toast.info(
+          "On iPhone, open the MP4 from Downloads and tap Share → Save Video to put it in Photos.",
+        );
       if (result.note) toast.info(result.note);
     } catch (err) {
       console.error(err);
@@ -279,7 +325,9 @@ export function Teleprompter() {
       <div className="min-h-screen w-full bg-background text-foreground">
         <header className="border-b border-border bg-card/40 backdrop-blur px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <div className="size-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">P</div>
+            <div className="size-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">
+              P
+            </div>
             <h1 className="text-xl font-bold">Prompter</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -302,31 +350,57 @@ export function Teleprompter() {
               placeholder="Paste your script here…"
               className="min-h-64 resize-y font-mono text-sm"
             />
-            <p className="text-xs text-muted-foreground">{text.trim().split(/\s+/).filter(Boolean).length} words</p>
+            <p className="text-xs text-muted-foreground">
+              {text.trim().split(/\s+/).filter(Boolean).length} words
+            </p>
           </section>
 
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2 text-sm"><Gauge className="size-4" /> Speed</Label>
+              <Label className="flex items-center gap-2 text-sm">
+                <Gauge className="size-4" /> Speed
+              </Label>
               <span className="text-sm text-muted-foreground tabular-nums">{speed} px/s</span>
             </div>
-            <Slider value={[speed]} min={20} max={250} step={5} onValueChange={(v) => setSpeed(v[0])} />
+            <Slider
+              value={[speed]}
+              min={20}
+              max={250}
+              step={5}
+              onValueChange={(v) => setSpeed(v[0])}
+            />
           </section>
 
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2 text-sm"><Type className="size-4" /> Font size</Label>
+              <Label className="flex items-center gap-2 text-sm">
+                <Type className="size-4" /> Font size
+              </Label>
               <span className="text-sm text-muted-foreground tabular-nums">{fontSize}px</span>
             </div>
-            <Slider value={[fontSize]} min={24} max={120} step={2} onValueChange={(v) => setFontSize(v[0])} />
+            <Slider
+              value={[fontSize]}
+              min={24}
+              max={120}
+              step={2}
+              onValueChange={(v) => setFontSize(v[0])}
+            />
           </section>
 
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2 text-sm"><ZoomIn className="size-4" /> Camera zoom</Label>
+              <Label className="flex items-center gap-2 text-sm">
+                <ZoomIn className="size-4" /> Camera zoom
+              </Label>
               <span className="text-sm text-muted-foreground tabular-nums">{zoom.toFixed(2)}×</span>
             </div>
-            <Slider value={[zoom]} min={1} max={3} step={0.05} onValueChange={(v) => setZoom(v[0])} />
+            <Slider
+              value={[zoom]}
+              min={1}
+              max={3}
+              step={0.05}
+              onValueChange={(v) => setZoom(v[0])}
+            />
           </section>
 
           <section className="flex items-center justify-between rounded-lg border border-border p-3">
@@ -346,10 +420,20 @@ export function Teleprompter() {
 
         {/* Sticky action bar */}
         <div className="fixed bottom-0 inset-x-0 z-20 border-t border-border bg-card/90 backdrop-blur px-4 py-3 flex gap-2 justify-center">
-          <Button size="lg" variant="secondary" className="flex-1 max-w-xs" onClick={() => enterStage("preview")}>
+          <Button
+            size="lg"
+            variant="secondary"
+            className="flex-1 max-w-xs"
+            onClick={() => enterStage("preview")}
+          >
             <Eye className="size-4" /> Preview
           </Button>
-          <Button size="lg" variant="destructive" className="flex-1 max-w-xs" onClick={() => enterStage("record")}>
+          <Button
+            size="lg"
+            variant="destructive"
+            className="flex-1 max-w-xs"
+            onClick={() => enterStage("record")}
+          >
             <Circle className="size-4 fill-current" /> Record
           </Button>
         </div>
@@ -426,7 +510,9 @@ export function Teleprompter() {
 
       {countdown > 0 && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="text-[180px] font-display font-bold text-primary leading-none animate-pulse">{countdown}</div>
+          <div className="text-[180px] font-display font-bold text-primary leading-none animate-pulse">
+            {countdown}
+          </div>
         </div>
       )}
 
@@ -446,28 +532,47 @@ export function Teleprompter() {
       {(previewing || recording) && (
         <div className="absolute top-1/2 right-4 -translate-y-1/2 z-30 flex flex-col gap-2">
           <Button
-            size="icon" variant="secondary" className="rounded-full size-11 shadow-xl"
+            size="icon"
+            variant="secondary"
+            className="rounded-full size-11 shadow-xl"
             onClick={() => setZoom((z) => Math.min(3, +(z + 0.1).toFixed(2)))}
             aria-label="Zoom in"
-          >+</Button>
+          >
+            +
+          </Button>
           <div className="text-center text-xs font-medium text-white/80 bg-black/50 rounded-full py-1 tabular-nums">
             {zoom.toFixed(1)}×
           </div>
           <Button
-            size="icon" variant="secondary" className="rounded-full size-11 shadow-xl"
+            size="icon"
+            variant="secondary"
+            className="rounded-full size-11 shadow-xl"
             onClick={() => setZoom((z) => Math.max(1, +(z - 0.1).toFixed(2)))}
             aria-label="Zoom out"
-          >−</Button>
+          >
+            −
+          </Button>
         </div>
       )}
 
       {/* Bottom controls when previewing only */}
       {previewing && !recording && (
         <div className="absolute bottom-8 inset-x-0 z-30 flex items-center justify-center gap-2">
-          <Button size="lg" variant="secondary" onClick={() => setPreviewing(false)} className="rounded-full shadow-2xl">
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => setPreviewing(false)}
+            className="rounded-full shadow-2xl"
+          >
             <EyeOff className="size-4" /> Exit preview
           </Button>
-          <Button size="lg" variant="destructive" onClick={startRecording} disabled={!camReady} className="rounded-full shadow-2xl">
+          <Button
+            size="lg"
+            variant="destructive"
+            onClick={startRecording}
+            disabled={!camReady}
+            className="rounded-full shadow-2xl"
+          >
             <Circle className="size-4 fill-current" /> Record
           </Button>
         </div>
@@ -476,10 +581,28 @@ export function Teleprompter() {
       {/* Bottom controls when recording */}
       {recording && (
         <div className="absolute bottom-8 inset-x-0 z-30 flex items-center justify-center gap-2">
-          <Button size="lg" variant="secondary" onClick={() => setPlaying((p) => !p)} className="rounded-full shadow-2xl">
-            {playing ? <><Pause className="size-4" /> Pause</> : <><Play className="size-4" /> Play</>}
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => setPlaying((p) => !p)}
+            className="rounded-full shadow-2xl"
+          >
+            {playing ? (
+              <>
+                <Pause className="size-4" /> Pause
+              </>
+            ) : (
+              <>
+                <Play className="size-4" /> Play
+              </>
+            )}
           </Button>
-          <Button size="lg" variant="destructive" onClick={stopRecording} className="rounded-full shadow-2xl">
+          <Button
+            size="lg"
+            variant="destructive"
+            onClick={stopRecording}
+            className="rounded-full shadow-2xl"
+          >
             <Square className="size-4 fill-current" /> Stop
           </Button>
         </div>
@@ -491,10 +614,28 @@ export function Teleprompter() {
           <Button size="lg" variant="secondary" onClick={reset} className="rounded-full shadow-2xl">
             <RotateCcw className="size-4" /> Reset
           </Button>
-          <Button size="lg" onClick={() => setPlaying((p) => !p)} className="rounded-full shadow-2xl">
-            {playing ? <><Pause className="size-4" /> Pause</> : <><Play className="size-4" /> Play</>}
+          <Button
+            size="lg"
+            onClick={() => setPlaying((p) => !p)}
+            className="rounded-full shadow-2xl"
+          >
+            {playing ? (
+              <>
+                <Pause className="size-4" /> Pause
+              </>
+            ) : (
+              <>
+                <Play className="size-4" /> Play
+              </>
+            )}
           </Button>
-          <Button size="lg" variant="destructive" onClick={startRecording} disabled={!camReady} className="rounded-full shadow-2xl">
+          <Button
+            size="lg"
+            variant="destructive"
+            onClick={startRecording}
+            disabled={!camReady}
+            className="rounded-full shadow-2xl"
+          >
             <Circle className="size-4 fill-current" /> Record
           </Button>
         </div>
@@ -505,7 +646,11 @@ export function Teleprompter() {
 
 // ============ Video Bank Modal ============
 function VideoBank({
-  clips, onClose, onDelete, onDownload, busyId,
+  clips,
+  onClose,
+  onDelete,
+  onDownload,
+  busyId,
 }: {
   clips: SavedClip[];
   onClose: () => void;
@@ -514,7 +659,10 @@ function VideoBank({
   busyId: string | null;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
       <div
         className="bg-card text-card-foreground rounded-xl border border-border w-full max-w-3xl max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -525,7 +673,9 @@ function VideoBank({
             <h2 className="text-lg font-bold">Video bank</h2>
             <span className="text-sm text-muted-foreground">({clips.length})</span>
           </div>
-          <Button size="icon" variant="ghost" onClick={onClose}><X className="size-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={onClose}>
+            <X className="size-4" />
+          </Button>
         </div>
         <div className="overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {clips.length === 0 && (
@@ -535,7 +685,13 @@ function VideoBank({
             </div>
           )}
           {clips.map((c) => (
-            <BankCard key={c.id} clip={c} onDelete={onDelete} onDownload={onDownload} busy={busyId === c.id} />
+            <BankCard
+              key={c.id}
+              clip={c}
+              onDelete={onDelete}
+              onDownload={onDownload}
+              busy={busyId === c.id}
+            />
           ))}
         </div>
       </div>
@@ -544,7 +700,10 @@ function VideoBank({
 }
 
 function BankCard({
-  clip, onDelete, onDownload, busy,
+  clip,
+  onDelete,
+  onDownload,
+  busy,
 }: {
   clip: SavedClip;
   onDelete: (id: string) => void;
@@ -564,13 +723,29 @@ function BankCard({
         {new Date(clip.createdAt).toLocaleString()} · {clip.durationSec}s · {clip.ext.toUpperCase()}
       </div>
       <div className="flex gap-2">
-        <Button size="sm" variant="secondary" className="flex-1" onClick={() => onDownload(clip, "mp4")} disabled={busy}>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="flex-1"
+          onClick={() => onDownload(clip, "mp4")}
+          disabled={busy}
+        >
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} MP4
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => onDownload(clip, "mp3")} disabled={busy}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => onDownload(clip, "mp3")}
+          disabled={busy}
+        >
           MP3
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => onDownload(clip, "original")} disabled={busy}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onDownload(clip, "original")}
+          disabled={busy}
+        >
           .{clip.ext}
         </Button>
         <Button size="sm" variant="destructive" onClick={() => onDelete(clip.id)} disabled={busy}>
@@ -583,7 +758,9 @@ function BankCard({
 
 // ============ Converter Modal ============
 function ConverterModal({
-  onClose, onConvert, converting,
+  onClose,
+  onConvert,
+  converting,
 }: {
   onClose: () => void;
   onConvert: (file: File, format: "mp4" | "mp3") => void;
@@ -592,17 +769,25 @@ function ConverterModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const formatRef = useRef<"mp4" | "mp3">("mp4");
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
       <div
         className="bg-card text-card-foreground rounded-xl border border-border w-full max-w-md p-6 flex flex-col gap-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2"><FileVideo className="size-5" /> WebM → MP4</h2>
-          <Button size="icon" variant="ghost" onClick={onClose} disabled={converting}><X className="size-4" /></Button>
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <FileVideo className="size-5" /> WebM → MP4
+          </h2>
+          <Button size="icon" variant="ghost" onClick={onClose} disabled={converting}>
+            <X className="size-4" />
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Converts old WebM recordings into iPhone Photos-compatible MP4 downloads, or extracts audio.
+          Converts old WebM recordings into iPhone Photos-compatible MP4 downloads, or extracts
+          audio.
         </p>
         <input
           ref={inputRef}
@@ -616,11 +801,36 @@ function ConverterModal({
           }}
         />
         <div className="grid grid-cols-2 gap-2">
-          <Button size="lg" onClick={() => { formatRef.current = "mp4"; inputRef.current?.click(); }} disabled={converting}>
-            {converting ? <Loader2 className="size-4 animate-spin" /> : <FileVideo className="size-4" />} MP4
+          <Button
+            size="lg"
+            onClick={() => {
+              formatRef.current = "mp4";
+              inputRef.current?.click();
+            }}
+            disabled={converting}
+          >
+            {converting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileVideo className="size-4" />
+            )}{" "}
+            MP4
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => { formatRef.current = "mp3"; inputRef.current?.click(); }} disabled={converting}>
-            {converting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} MP3
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => {
+              formatRef.current = "mp3";
+              inputRef.current?.click();
+            }}
+            disabled={converting}
+          >
+            {converting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}{" "}
+            MP3
           </Button>
         </div>
       </div>
