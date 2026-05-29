@@ -222,54 +222,54 @@ export function DocumentDesigner() {
             />
 
             {/* Header */}
-            <div className="flex items-end justify-between px-14 pt-10 pb-6">
-              <img src={logoUrl} alt={BRAND.name} className="h-11 w-auto" />
+            <div className="flex items-end justify-between px-10 pt-7 pb-4">
+              <img src={logoUrl} alt={BRAND.name} className="h-9 w-auto" />
               <div className="text-right">
                 {doc?.eyebrow && (
                   <div
-                    className="text-[10px] font-bold uppercase tracking-[0.22em]"
+                    className="text-[9.5px] font-bold uppercase tracking-[0.22em]"
                     style={{ color: BRAND.red }}
                   >
                     {doc.eyebrow}
                   </div>
                 )}
-                <div className="mt-0.5 text-[11px]" style={{ color: BRAND.navy, opacity: 0.55 }}>
+                <div className="mt-0.5 text-[10px]" style={{ color: BRAND.navy, opacity: 0.55 }}>
                   {today}
                 </div>
               </div>
             </div>
 
             {/* Title block */}
-            <div className="px-14">
+            <div className="px-10">
               <div className="h-px w-full" style={{ backgroundColor: `${BRAND.navy}15` }} />
               <h1
-                className="mt-6 text-[34px] font-extrabold leading-[1.1] tracking-tight"
+                className="mt-4 text-[26px] font-extrabold leading-[1.1] tracking-tight"
                 style={{ color: BRAND.navy }}
               >
                 {doc?.title || "Your document title appears here"}
               </h1>
               {doc?.subtitle && (
                 <p
-                  className="mt-3 text-[15px] leading-snug"
+                  className="mt-2 text-[12.5px] leading-snug"
                   style={{ color: BRAND.navy, opacity: 0.7 }}
                 >
                   {doc.subtitle}
                 </p>
               )}
-              <div className="mt-5 h-[3px] w-12 rounded-full" style={{ backgroundColor: BRAND.red }} />
+              <div className="mt-3 h-[2.5px] w-10 rounded-full" style={{ backgroundColor: BRAND.red }} />
             </div>
 
             {/* Body */}
-            <div className="px-14 pt-6 pb-20">
+            <div className="px-10 pt-4 pb-14">
               {!doc ? (
                 <div
-                  className="mt-8 rounded-lg border border-dashed p-8 text-center text-sm"
+                  className="mt-6 rounded-lg border border-dashed p-6 text-center text-sm"
                   style={{ borderColor: `${BRAND.navy}25`, color: `${BRAND.navy}80` }}
                 >
                   Paste your text on the left and click <span className="font-semibold">Format with AI</span> to generate a branded one-pager.
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {doc.blocks.map((b, i) => (
                     <BlockView key={i} block={b} index={i} />
                   ))}
@@ -279,7 +279,7 @@ export function DocumentDesigner() {
 
             {/* Footer slogan */}
             <div
-              className="absolute inset-x-0 bottom-0 px-14 py-4 text-center text-[10.5px] italic tracking-wide"
+              className="absolute inset-x-0 bottom-0 px-10 py-3 text-center text-[10px] italic tracking-wide"
               style={{ borderTop: `1px solid ${BRAND.navy}15`, color: BRAND.navy, opacity: 0.7 }}
             >
               {BRAND.tagline}
