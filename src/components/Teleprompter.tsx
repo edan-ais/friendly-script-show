@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, Circle, Square, Download, Type, Gauge, FlipHorizontal, Trash2, Eye, EyeOff } from "lucide-react";
+import { Play, Pause, RotateCcw, Circle, Square, Download, Type, Gauge, FlipHorizontal, Trash2, Eye, EyeOff, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +24,7 @@ export function Teleprompter() {
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [previewing, setPreviewing] = useState(false);
+  const [zoom, setZoom] = useState(1);
   const [camReady, setCamReady] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -160,13 +161,14 @@ export function Teleprompter() {
         autoPlay
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ transform: "scaleX(-1)" }}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-200"
+        style={{ transform: `scaleX(-1) scale(${zoom})` }}
       />
-      {/* Dim overlay for legibility */}
-      <div className="absolute inset-0 bg-black/45 pointer-events-none" />
+      {/* Dim overlay for legibility — hidden in preview */}
+      {!previewing && <div className="absolute inset-0 bg-black/45 pointer-events-none" />}
 
-      {/* Prompter text column — narrow so ~4 words per line */}
+      {/* Prompter text column — hidden in preview */}
+      {!previewing && (
       <div className="absolute inset-0 flex justify-center pointer-events-none">
         <div className="relative h-full w-full max-w-3xl">
           {/* fade gradients */}
@@ -195,6 +197,7 @@ export function Teleprompter() {
           </div>
         </div>
       </div>
+      )}
 
       {/* REC badge — visible while recording */}
       {recording && (
@@ -225,6 +228,33 @@ export function Teleprompter() {
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
           <Button size="lg" variant="secondary" onClick={() => setPreviewing(false)} className="rounded-full shadow-2xl px-6">
             <EyeOff className="size-4" /> Exit preview
+          </Button>
+        </div>
+      )}
+
+      {/* Floating zoom controls — visible during preview & recording */}
+      {(previewing || recording) && (
+        <div className="absolute top-1/2 right-4 -translate-y-1/2 z-30 flex flex-col gap-2">
+          <Button
+            size="icon"
+            variant="secondary"
+            className="rounded-full size-11 shadow-xl"
+            onClick={() => setZoom((z) => Math.min(3, +(z + 0.1).toFixed(2)))}
+            aria-label="Zoom in"
+          >
+            +
+          </Button>
+          <div className="text-center text-xs font-medium text-white/80 bg-black/50 rounded-full py-1 tabular-nums">
+            {zoom.toFixed(1)}×
+          </div>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="rounded-full size-11 shadow-xl"
+            onClick={() => setZoom((z) => Math.max(1, +(z - 0.1).toFixed(2)))}
+            aria-label="Zoom out"
+          >
+            −
           </Button>
         </div>
       )}
@@ -289,6 +319,14 @@ export function Teleprompter() {
               <span className="text-sm text-muted-foreground tabular-nums">{fontSize}px</span>
             </div>
             <Slider value={[fontSize]} min={24} max={120} step={2} onValueChange={(v) => setFontSize(v[0])} />
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 text-sm"><ZoomIn className="size-4" /> Camera zoom</Label>
+              <span className="text-sm text-muted-foreground tabular-nums">{zoom.toFixed(2)}×</span>
+            </div>
+            <Slider value={[zoom]} min={1} max={3} step={0.05} onValueChange={(v) => setZoom(v[0])} />
           </div>
 
           <div className="flex items-center justify-between">
