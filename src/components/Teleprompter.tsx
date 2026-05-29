@@ -267,46 +267,59 @@ export function Teleprompter() {
   const fmt = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-  const downloadClip = useCallback(async (clip: SavedClip, format: DownloadFormat) => {
-    try {
-      let blob = clip.blob;
-      let ext: string = clip.ext;
-      if (format === "mp4") {
-        setBusyId(clip.id);
-        toast.info("Converting to MP4… first time may take a moment.");
-        const result = await videoToMp4(clip.blob);
-        blob = result.blob;
-        ext = result.ext;
-        if (result.note) toast.info(result.note);
-      } else if (format === "mp3") {
-        setBusyId(clip.id);
-        toast.info("Extracting MP3 audio… first time may take a moment.");
-        const result = await videoToMp3(clip.blob);
-        blob = result.blob;
-        ext = result.ext;
-        if (result.note) toast.info(result.note);
+  const downloadClip = useCallback(
+    async (clip: SavedClip, format: DownloadFormat) => {
+      try {
+        let blob = clip.blob;
+        let ext: string = clip.ext;
+        if (format === "mp4") {
+          setBusyId(clip.id);
+          setConvertProgress({ ratio: 0, startedAt: performance.now() });
+          toast.info("Converting to MP4… first time may take a moment.");
+          const result = await videoToMp4(clip.blob, {
+            onProgress: (ratio) =>
+              setConvertProgress((prev) => ({
+                ratio,
+                startedAt: prev?.startedAt ?? performance.now(),
+              })),
+          });
+          blob = result.blob;
+          ext = result.ext;
+          if (result.note) toast.info(result.note);
+        }
+        downloadBlob(blob, `${safeName(clip.name)}.${ext}`);
+        if (ext === "mp4")
+          toast.success(
+            "MP4 ready. On iPhone, open it from Downloads and tap Share → Save Video.",
+          );
+      } catch (err) {
+        console.error(err);
+        toast.error(err instanceof Error ? err.message : "Conversion failed");
+      } finally {
+        setBusyId(null);
+        setConvertProgress(null);
       }
-      downloadBlob(blob, `${safeName(clip.name)}.${ext}`);
-      if (ext === "mp4")
-        toast.success("MP4 ready. On iPhone, open it from Downloads and tap Share → Save Video.");
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Conversion failed");
-    } finally {
-      setBusyId(null);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const removeClip = async (id: string) => {
     await deleteClip(id);
     setClips((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const convertUpload = async (file: File, format: "mp4" | "mp3") => {
+  const convertUpload = async (file: File) => {
     try {
       setConverting(true);
+      setConvertProgress({ ratio: 0, startedAt: performance.now() });
       toast.info("Converting… this may take a moment.");
-      const result = format === "mp3" ? await videoToMp3(file) : await webmToMp4(file);
+      const result = await webmToMp4(file, {
+        onProgress: (ratio) =>
+          setConvertProgress((prev) => ({
+            ratio,
+            startedAt: prev?.startedAt ?? performance.now(),
+          })),
+      });
       downloadBlob(
         result.blob,
         file.name.replace(/\.(webm|mkv|mov|avi|mp4|m4v)$/i, "") + `.${result.ext}`,
@@ -326,6 +339,7 @@ export function Teleprompter() {
       toast.error(err instanceof Error ? err.message : "Conversion failed", { duration: 9000 });
     } finally {
       setConverting(false);
+      setConvertProgress(null);
     }
   };
 
