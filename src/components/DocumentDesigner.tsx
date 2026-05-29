@@ -1,4 +1,11 @@
-import { useState, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
+import {
+  useState,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Printer, Sparkles, Loader2 } from "lucide-react";
@@ -40,7 +47,8 @@ function renderInline(text: string, key: string) {
   while ((m = regex.exec(text)) !== null) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
     const tok = m[0];
-    if (tok.startsWith("**")) nodes.push(<strong key={`${key}-b-${i++}`}>{tok.slice(2, -2)}</strong>);
+    if (tok.startsWith("**"))
+      nodes.push(<strong key={`${key}-b-${i++}`}>{tok.slice(2, -2)}</strong>);
     else nodes.push(<em key={`${key}-i-${i++}`}>{tok.slice(1, -1)}</em>);
     last = m.index + tok.length;
   }
@@ -77,10 +85,7 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
         <ul className="doc-block doc-list" style={{ color: BRAND.navy }}>
           {block.items.map((it, j) => (
             <li key={j} className="doc-list-item">
-              <span
-                className="doc-bullet"
-                style={{ backgroundColor: BRAND.red }}
-              />
+              <span className="doc-bullet" style={{ backgroundColor: BRAND.red }} />
               <span>{renderInline(it, `li-${index}-${j}`)}</span>
             </li>
           ))}
@@ -99,12 +104,78 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
       return (
         <div
           className="doc-block doc-callout"
-          style={{ backgroundColor: BRAND.cream, color: BRAND.navy, borderLeft: `3px solid ${BRAND.red}` }}
+          style={{
+            backgroundColor: BRAND.cream,
+            color: BRAND.navy,
+            borderLeft: `3px solid ${BRAND.red}`,
+          }}
         >
           {renderInline(block.text, `c-${index}`)}
         </div>
       );
   }
+}
+
+function normalizeForCompare(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function getDocText(doc: StructuredDoc) {
+  return [
+    doc.title,
+    doc.subtitle ?? "",
+    ...doc.blocks.flatMap((block) => (block.kind === "list" ? block.items : block.text)),
+  ].join("\n");
+}
+
+function didPreserveMeaning(source: string, structured: StructuredDoc) {
+  const sourceWords = new Set(
+    normalizeForCompare(source)
+      .split(/\s+/)
+      .filter((word) => word.length > 2),
+  );
+  const outputWords = normalizeForCompare(getDocText(structured))
+    .split(/\s+/)
+    .filter((word) => word.length > 2);
+  if (!sourceWords.size || !outputWords.length) return false;
+  const validWords = outputWords.filter((word) => sourceWords.has(word)).length;
+  return validWords / outputWords.length > 0.82;
+}
+
+function formatRawFallback(text: string): StructuredDoc {
+  const lines = text
+    .trim()
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const title = lines[0] ?? "Untitled";
+  const blocks: DocBlock[] = [];
+  let pendingList: string[] = [];
+
+  const flushList = () => {
+    if (pendingList.length) {
+      blocks.push({ kind: "list", items: pendingList });
+      pendingList = [];
+    }
+  };
+
+  for (const line of lines.slice(1)) {
+    const bullet = line.match(/^[-•*]\s+(.+)/);
+    if (bullet) {
+      pendingList.push(bullet[1]);
+      continue;
+    }
+    flushList();
+    blocks.push({ kind: "paragraph", text: line });
+  }
+  flushList();
+
+  return { title, subtitle: "", eyebrow: "", blocks };
 }
 
 type LayoutProfile = {
@@ -129,20 +200,26 @@ type LayoutProfile = {
 
 function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   const words = doc
-    ? [doc.title, doc.subtitle ?? "", ...doc.blocks.map((block) => (block.kind === "list" ? block.items.join(" ") : block.text))]
+    ? [
+        doc.title,
+        doc.subtitle ?? "",
+        ...doc.blocks.map((block) => (block.kind === "list" ? block.items.join(" ") : block.text)),
+      ]
         .join(" ")
         .trim()
         .split(/\s+/)
         .filter(Boolean).length
     : 0;
   const blocks = doc?.blocks.length ?? 0;
-  const listItems = doc?.blocks.reduce((sum, block) => sum + (block.kind === "list" ? block.items.length : 0), 0) ?? 0;
+  const listItems =
+    doc?.blocks.reduce((sum, block) => sum + (block.kind === "list" ? block.items.length : 0), 0) ??
+    0;
   const useColumns = words > 520 || blocks > 10 || listItems > 10;
 
   if (words <= 150) {
     return {
       columns: 1,
-      fill: "space-between",
+      fill: "flex-start",
       titleSize: 36,
       subtitleSize: 15,
       titleMarginTop: 18,
@@ -164,7 +241,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   if (words <= 320) {
     return {
       columns: 1,
-      fill: "space-between",
+      fill: "flex-start",
       titleSize: 31,
       subtitleSize: 13.5,
       titleMarginTop: 16,
@@ -186,7 +263,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   if (!useColumns) {
     return {
       columns: 1,
-      fill: "space-between",
+      fill: "flex-start",
       titleSize: 27,
       subtitleSize: 12.4,
       titleMarginTop: 14,
@@ -207,7 +284,7 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
 
   return {
     columns: 2,
-    fill: "space-between",
+    fill: "flex-start",
     titleSize: words > 850 ? 23 : 25,
     subtitleSize: words > 850 ? 10.8 : 11.6,
     titleMarginTop: 11,
@@ -226,7 +303,15 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
   };
 }
 
-function DynamicBodyFit({ children, deps, profile }: { children: ReactNode; deps: unknown[]; profile: LayoutProfile }) {
+function DynamicBodyFit({
+  children,
+  deps,
+  profile,
+}: {
+  children: ReactNode;
+  deps: unknown[];
+  profile: LayoutProfile;
+}) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -272,12 +357,7 @@ function DynamicBodyFit({ children, deps, profile }: { children: ReactNode; deps
 
   return (
     <div ref={outerRef} className="h-full w-full overflow-hidden">
-      <div
-        ref={innerRef}
-        className="doc-flow"
-        data-columns={profile.columns}
-        style={flowStyle}
-      >
+      <div ref={innerRef} className="doc-flow" data-columns={profile.columns} style={flowStyle}>
         {children}
       </div>
     </div>
@@ -305,8 +385,13 @@ export function DocumentDesigner() {
     setLoading(true);
     try {
       const result = await structureFn({ data: { text: raw.trim() } });
-      setDoc(result);
-      toast.success("Document formatted.");
+      if (didPreserveMeaning(raw, result)) {
+        setDoc(result);
+        toast.success("Document formatted.");
+      } else {
+        setDoc(formatRawFallback(raw));
+        toast.warning("AI changed too much, so I preserved your exact text instead.");
+      }
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Failed to format document.");
@@ -316,7 +401,10 @@ export function DocumentDesigner() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #f5f1ec 0%, #ece6df 100%)" }}>
+    <div
+      className="min-h-screen"
+      style={{ background: "linear-gradient(180deg, #f5f1ec 0%, #ece6df 100%)" }}
+    >
       <style>{`
         .print-page, .print-page * {
           -webkit-print-color-adjust: exact !important;
@@ -345,7 +433,8 @@ export function DocumentDesigner() {
           height: 100%;
         }
         .doc-flow[data-columns="2"] .doc-block { margin-bottom: var(--doc-block-gap); }
-        .doc-block { break-inside: avoid; margin: 0; }
+        .doc-block { break-inside: avoid; margin: 0; max-width: 100%; }
+        .doc-flow[data-columns="1"] .doc-block + .doc-block { margin-top: var(--doc-section-gap); }
         .doc-heading { margin: var(--doc-section-gap) 0 0; font-size: var(--doc-heading-font); line-height: 1.12; font-weight: 800; letter-spacing: 0; }
         .doc-subheading { margin: var(--doc-section-gap) 0 0; font-size: var(--doc-subheading-font); line-height: 1.2; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; }
         .doc-paragraph { font-size: var(--doc-body-font); line-height: var(--doc-line); }
@@ -374,11 +463,20 @@ export function DocumentDesigner() {
 
       <header className="no-print sticky top-0 z-10 border-b border-neutral-200/70 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900"
+          >
             <ArrowLeft className="h-4 w-4" /> Apps
           </Link>
           <div className="text-sm font-semibold text-neutral-900">Document Designer</div>
-          <Button onClick={() => window.print()} size="sm" variant="outline" className="gap-2" disabled={!doc}>
+          <Button
+            onClick={() => window.print()}
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            disabled={!doc}
+          >
             <Printer className="h-4 w-4" /> Save as PDF
           </Button>
         </div>
@@ -392,7 +490,8 @@ export function DocumentDesigner() {
               <Sparkles className="h-4 w-4" style={{ color: BRAND.red }} /> Paste your text
             </div>
             <p className="mt-1 text-xs text-neutral-500">
-              Paste anything — an announcement, memo, notes. AI will pick the title, subtitle, headings, and lists.
+              Paste anything — an announcement, memo, notes. AI will pick the title, subtitle,
+              headings, and lists.
             </p>
           </div>
           <Textarea
@@ -409,9 +508,13 @@ export function DocumentDesigner() {
             style={{ backgroundColor: BRAND.red, color: "white" }}
           >
             {loading ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Formatting…</>
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Formatting…
+              </>
             ) : (
-              <><Sparkles className="h-4 w-4" /> Format with AI</>
+              <>
+                <Sparkles className="h-4 w-4" /> Format with AI
+              </>
             )}
           </Button>
         </aside>
@@ -420,7 +523,11 @@ export function DocumentDesigner() {
         <div className="print-root flex justify-center">
           <div
             className="print-page relative flex aspect-[8.5/11] w-full max-w-[8.5in] flex-col overflow-hidden shadow-[0_20px_60px_-20px_rgba(14,23,48,0.35)]"
-            style={{ backgroundColor: BRAND.paper, fontFamily: "Inter, system-ui, sans-serif", color: BRAND.navy }}
+            style={{
+              backgroundColor: BRAND.paper,
+              fontFamily: "Inter, system-ui, sans-serif",
+              color: BRAND.navy,
+            }}
           >
             {/* Decorative red side bar */}
             <div className="absolute inset-y-0 left-0 w-2" style={{ backgroundColor: BRAND.red }} />
@@ -444,7 +551,11 @@ export function DocumentDesigner() {
               className="relative z-10 flex shrink-0 items-end justify-between px-10 pt-7 pb-4"
               style={{ textShadow: "0 1px 0 rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.7)" }}
             >
-              <img src={logoUrl} alt={BRAND.name} className="h-20 w-auto drop-shadow-[0_2px_3px_rgba(255,255,255,0.8)]" />
+              <img
+                src={logoUrl}
+                alt={BRAND.name}
+                className="h-20 w-auto drop-shadow-[0_2px_3px_rgba(255,255,255,0.8)]"
+              />
               <div className="text-right">
                 {doc?.eyebrow && (
                   <div
@@ -463,12 +574,19 @@ export function DocumentDesigner() {
             {/* Title block */}
             <div
               className="relative z-10 shrink-0 px-10"
-              style={{ textShadow: "0 1px 0 rgba(255,255,255,0.9), 0 0 10px rgba(255,255,255,0.75)" }}
+              style={{
+                textShadow: "0 1px 0 rgba(255,255,255,0.9), 0 0 10px rgba(255,255,255,0.75)",
+              }}
             >
               <div className="h-px w-full" style={{ backgroundColor: `${BRAND.navy}15` }} />
               <h1
                 className="font-extrabold leading-[1.1]"
-                style={{ color: BRAND.navy, fontSize: `${profile.titleSize}px`, marginTop: `${profile.titleMarginTop}px`, letterSpacing: 0 }}
+                style={{
+                  color: BRAND.navy,
+                  fontSize: `${profile.titleSize}px`,
+                  marginTop: `${profile.titleMarginTop}px`,
+                  letterSpacing: 0,
+                }}
               >
                 {doc?.title || "Your document title appears here"}
               </h1>
@@ -480,7 +598,10 @@ export function DocumentDesigner() {
                   {doc.subtitle}
                 </p>
               )}
-              <div className="mt-3 h-[2.5px] w-10 rounded-full" style={{ backgroundColor: BRAND.red }} />
+              <div
+                className="mt-3 h-[2.5px] w-10 rounded-full"
+                style={{ backgroundColor: BRAND.red }}
+              />
             </div>
 
             {/* Body — auto-fits to remaining vertical space */}
@@ -507,7 +628,9 @@ export function DocumentDesigner() {
                     className="mt-6 rounded-lg border border-dashed p-6 text-center text-sm"
                     style={{ borderColor: `${BRAND.navy}25`, color: `${BRAND.navy}80` }}
                   >
-                    Paste your text on the left and click <span className="font-semibold">Format with AI</span> to generate a branded one-pager.
+                    Paste your text on the left and click{" "}
+                    <span className="font-semibold">Format with AI</span> to generate a branded
+                    one-pager.
                   </div>
                 )
               ) : (
@@ -522,7 +645,11 @@ export function DocumentDesigner() {
             {/* Footer slogan */}
             <div
               className="relative z-10 shrink-0 px-10 py-3 text-center text-[10px] italic tracking-wide"
-              style={{ color: BRAND.navy, opacity: 0.7, textShadow: "0 1px 0 rgba(255,255,255,0.9)" }}
+              style={{
+                color: BRAND.navy,
+                opacity: 0.7,
+                textShadow: "0 1px 0 rgba(255,255,255,0.9)",
+              }}
             >
               {BRAND.tagline}
             </div>
