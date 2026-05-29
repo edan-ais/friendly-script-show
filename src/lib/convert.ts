@@ -108,9 +108,9 @@ function userFriendlyError(error: unknown): Error {
     return new Error("No usable audio or video track was found in that file.");
   }
   if (combined.includes("memory") || combined.includes("aborted") || combined.includes("runtimeerror")) {
-    return new Error("This device ran out of conversion memory. Try a shorter clip or download the original.");
+    return new Error("This device ran out of conversion memory before it could make an iPhone-compatible file.");
   }
-  return new Error("Conversion failed on this device. Try a shorter clip or download the original.");
+  return new Error("Conversion failed before an iPhone-compatible file could be created.");
 }
 
 async function mountInput(ff: FFmpeg, input: Blob, id: number) {
@@ -174,9 +174,12 @@ function mp4TranscodeArgs(opts?: { mirror?: boolean; width?: number; crf?: numbe
     ...(opts?.audio === false ? [] : ["-map", "0:a?"]),
     "-vf", vf,
     "-c:v", "libx264",
+    "-profile:v", "baseline",
+    "-level", "3.1",
     "-preset", "ultrafast",
     "-crf", String(opts?.crf ?? (isIOS() ? 32 : 29)),
     "-pix_fmt", "yuv420p",
+    "-tag:v", "avc1",
     "-threads", "1",
     ...(opts?.audio === false ? ["-an"] : ["-c:a", "aac", "-b:a", opts?.audioBitrate ?? "96k", "-ac", "2"]),
     "-movflags", "+faststart",
@@ -230,7 +233,9 @@ export async function videoToMp4(input: Blob, opts?: { mirror?: boolean }): Prom
     }
   }
 
-  return originalResult(input, "This device could not finish MP4 conversion, so the original file was downloaded instead.");
+  throw new Error(isIOS()
+    ? "This iPhone could not finish converting that WebM. Use a shorter clip, or convert it on a desktop and then use Save to Photos."
+    : "This file could not be converted into an iPhone-compatible MP4.");
 }
 
 export async function videoToMp3(input: Blob): Promise<ConversionResult> {
