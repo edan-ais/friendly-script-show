@@ -38,7 +38,17 @@ Click record to capture yourself reading — the video saves straight to your ba
 Adjust speed and font size on the setup screen. Mirror the text if you're reading off a reflective glass rig.`;
 
 type Mode = "setup" | "stage";
-type DownloadFormat = "original" | "mp4" | "mp3";
+type DownloadFormat = "original" | "mp4";
+
+type ConvertProgress = { ratio: number; startedAt: number } | null;
+
+function formatEta(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  if (seconds < 60) return `${Math.ceil(seconds)}s`;
+  const m = Math.floor(seconds / 60);
+  const s = Math.ceil(seconds % 60);
+  return `${m}m ${s}s`;
+}
 
 function safeName(name: string) {
   return name.replace(/[^a-z0-9-_]+/gi, "_");
