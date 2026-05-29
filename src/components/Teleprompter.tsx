@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, Circle, Square, Download, Type, Gauge, FlipHorizontal } from "lucide-react";
+import { Play, Pause, RotateCcw, Circle, Square, Download, Type, Gauge, FlipHorizontal, Trash2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,7 @@ export function Teleprompter() {
   const [recording, setRecording] = useState(false);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [previewing, setPreviewing] = useState(false);
   const [camReady, setCamReady] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -219,8 +220,17 @@ export function Teleprompter() {
         </div>
       )}
 
-      {/* Header — hidden while recording */}
-      {!recording && (
+      {/* Exit preview button */}
+      {previewing && !recording && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
+          <Button size="lg" variant="secondary" onClick={() => setPreviewing(false)} className="rounded-full shadow-2xl px-6">
+            <EyeOff className="size-4" /> Exit preview
+          </Button>
+        </div>
+      )}
+
+      {/* Header — hidden in chromeless mode */}
+      {!recording && !previewing && (
         <header className="absolute top-0 inset-x-0 z-30 border-b border-white/10 bg-black/40 backdrop-blur px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="size-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">P</div>
@@ -233,14 +243,17 @@ export function Teleprompter() {
         </header>
       )}
 
-      {/* Bottom controls — hidden while recording */}
-      {!recording && (
-        <div className="absolute bottom-0 inset-x-0 z-30 border-t border-white/10 bg-black/50 backdrop-blur px-6 py-4 flex items-center justify-center gap-3">
+      {/* Bottom controls */}
+      {!recording && !previewing && (
+        <div className="absolute bottom-0 inset-x-0 z-30 border-t border-white/10 bg-black/50 backdrop-blur px-4 py-4 flex items-center justify-center gap-2 flex-wrap">
           <Button size="lg" variant="secondary" onClick={reset}>
             <RotateCcw className="size-4" /> Reset
           </Button>
-          <Button size="lg" onClick={() => setPlaying((p) => !p)} className="min-w-32">
+          <Button size="lg" onClick={() => setPlaying((p) => !p)} className="min-w-28">
             {playing ? <><Pause className="size-4" /> Pause</> : <><Play className="size-4" /> Play</>}
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => setPreviewing(true)} disabled={!camReady}>
+            <Eye className="size-4" /> Preview
           </Button>
           <Button size="lg" variant="destructive" onClick={startRecording} disabled={!camReady}>
             <Circle className="size-4 fill-current" /> Record
@@ -248,8 +261,8 @@ export function Teleprompter() {
         </div>
       )}
 
-      {/* Side panel — hidden while recording */}
-      {!recording && (
+      {/* Side panel */}
+      {!recording && !previewing && (
         <aside className="absolute top-16 bottom-24 inset-x-0 sm:left-auto sm:right-0 sm:w-[340px] z-30 border-t sm:border-t-0 sm:border-l border-white/10 bg-black/70 backdrop-blur p-4 flex flex-col gap-4 overflow-y-auto">
           <div className="flex flex-col gap-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Script</Label>
@@ -289,11 +302,23 @@ export function Teleprompter() {
             <div className="flex flex-col gap-3 pt-4 border-t border-border">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Last recording</Label>
               <video src={recordedUrl} controls className="w-full rounded-lg border border-border" />
-              <Button asChild variant="secondary">
-                <a href={recordedUrl} download={`prompter-${Date.now()}.webm`}>
-                  <Download className="size-4" /> Download
-                </a>
-              </Button>
+              <div className="flex gap-2">
+                <Button asChild variant="secondary" className="flex-1">
+                  <a href={recordedUrl} download={`prompter-${Date.now()}.webm`}>
+                    <Download className="size-4" /> Download
+                  </a>
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    URL.revokeObjectURL(recordedUrl);
+                    setRecordedUrl(null);
+                  }}
+                  aria-label="Delete recording"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </div>
           )}
         </aside>
