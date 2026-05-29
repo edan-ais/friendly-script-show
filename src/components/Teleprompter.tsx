@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { listClips, saveClip, deleteClip, type SavedClip } from "@/lib/video-bank";
-import { videoToMp3, videoToMp4 } from "@/lib/convert";
+import { videoToMp3, videoToMp4, webmToMp4 } from "@/lib/convert";
 
 const SAMPLE = `Welcome to Prompter.
 
@@ -23,6 +23,27 @@ Adjust speed and font size on the setup screen. Mirror the text if you're readin
 
 type Mode = "setup" | "stage";
 type DownloadFormat = "original" | "mp4" | "mp3";
+
+function safeName(name: string) {
+  return name.replace(/[^a-z0-9-_]+/gi, "_");
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const nav = navigator as Navigator & { msSaveOrOpenBlob?: (blob: Blob, defaultName?: string) => boolean };
+  if (nav.msSaveOrOpenBlob) {
+    nav.msSaveOrOpenBlob(blob, filename);
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
 
 export function Teleprompter() {
   const [mode, setMode] = useState<Mode>("setup");
@@ -220,12 +241,8 @@ export function Teleprompter() {
         ext = result.ext;
         if (result.note) toast.info(result.note);
       }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${clip.name.replace(/[^a-z0-9-_]+/gi, "_")}.${ext}`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      downloadBlob(blob, `${safeName(clip.name)}.${ext}`);
+      if (ext === "mp4") toast.success("MP4 ready. On iPhone, open it from Downloads and tap Share → Save Video.");
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Conversion failed");
@@ -243,14 +260,10 @@ export function Teleprompter() {
     try {
       setConverting(true);
       toast.info("Converting… this may take a moment.");
-      const result = format === "mp3" ? await videoToMp3(file) : await videoToMp4(file);
-      const url = URL.createObjectURL(result.blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = file.name.replace(/\.(webm|mkv|mov|avi|mp4|m4v)$/i, "") + `.${result.ext}`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      const result = format === "mp3" ? await videoToMp3(file) : await webmToMp4(file);
+      downloadBlob(result.blob, file.name.replace(/\.(webm|mkv|mov|avi|mp4|m4v)$/i, "") + `.${result.ext}`);
       toast.success(result.converted ? `Saved as ${result.ext.toUpperCase()}` : `Downloaded ${result.ext.toUpperCase()}`);
+      if (result.ext === "mp4") toast.info("On iPhone, open the MP4 from Downloads and tap Share → Save Video to put it in Photos.");
       if (result.note) toast.info(result.note);
     } catch (err) {
       console.error(err);
@@ -589,7 +602,7 @@ function ConverterModal({
           <Button size="icon" variant="ghost" onClick={onClose} disabled={converting}><X className="size-4" /></Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Convert any WebM, MOV, MKV, AVI, or MP4 clip right in your browser.
+          Converts old WebM recordings into iPhone Photos-compatible MP4 downloads, or extracts audio.
         </p>
         <input
           ref={inputRef}
