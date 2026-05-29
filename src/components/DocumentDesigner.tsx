@@ -341,7 +341,8 @@ export function DocumentDesigner() {
           display: block;
           column-count: 2;
           column-gap: 24px;
-          column-fill: auto;
+          column-fill: balance;
+          height: 100%;
         }
         .doc-flow[data-columns="2"] .doc-block { margin-bottom: var(--doc-block-gap); }
         .doc-block { break-inside: avoid; margin: 0; }
