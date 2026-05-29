@@ -68,7 +68,10 @@ export const structureDocument = createServerFn({ method: "POST" })
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: data.text },
+          {
+            role: "user",
+            content: `Format the text below. Use ONLY words from this text — do not invent or rewrite anything.\n\n---BEGIN USER TEXT---\n${data.text}\n---END USER TEXT---`,
+          },
         ],
         response_format: { type: "json_object" },
       }),
