@@ -435,7 +435,7 @@ export function DocumentDesigner() {
               src={sealUrl}
               alt=""
               aria-hidden="true"
-              className="pointer-events-none absolute bottom-12 right-6 w-[1.68in] opacity-20 mix-blend-multiply"
+              className="pointer-events-none absolute bottom-12 right-6 w-[2.7in] opacity-20 mix-blend-multiply"
             />
 
             {/* Header */}
