@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import logoUrl from "@/assets/aicd10-logo.png";
+import sealUrl from "@/assets/aicd10-seal.png";
 import { structureDocument, type StructuredDoc, type DocBlock } from "@/lib/document.functions";
 
 const BRAND = {
@@ -429,10 +430,17 @@ export function DocumentDesigner() {
                 background: `radial-gradient(circle at top right, ${BRAND.red}, transparent 70%)`,
               }}
             />
+            {/* Corporate seal watermark */}
+            <img
+              src={sealUrl}
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute bottom-12 right-6 w-[3.2in] opacity-20 mix-blend-multiply"
+            />
 
             {/* Header */}
             <div className="flex shrink-0 items-end justify-between px-10 pt-7 pb-4">
-              <img src={logoUrl} alt={BRAND.name} className="h-9 w-auto" />
+              <img src={logoUrl} alt={BRAND.name} className="h-20 w-auto" />
               <div className="text-right">
                 {doc?.eyebrow && (
                   <div
