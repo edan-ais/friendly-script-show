@@ -129,7 +129,7 @@ function AutoFit({ children, deps }: { children: React.ReactNode; deps: unknown[
       if (!available || !natural) return;
       const raw = available / natural;
       const next = Math.max(0.5, Math.min(4, raw));
-      setScale(next);
+      setScale((prev) => (Math.abs(prev - next) < 0.01 ? prev : next));
     };
 
     fit();
