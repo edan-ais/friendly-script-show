@@ -357,8 +357,13 @@ export function DocumentDesigner() {
     setLoading(true);
     try {
       const result = await structureFn({ data: { text: raw.trim() } });
-      setDoc(result);
-      toast.success("Document formatted.");
+      if (didPreserveMeaning(raw, result)) {
+        setDoc(result);
+        toast.success("Document formatted.");
+      } else {
+        setDoc(formatRawFallback(raw));
+        toast.warning("AI changed too much, so I preserved your exact text instead.");
+      }
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Failed to format document.");
