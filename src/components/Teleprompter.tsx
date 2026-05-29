@@ -161,13 +161,14 @@ export function Teleprompter() {
         autoPlay
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ transform: "scaleX(-1)" }}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-200"
+        style={{ transform: `scaleX(-1) scale(${zoom})` }}
       />
-      {/* Dim overlay for legibility */}
-      <div className="absolute inset-0 bg-black/45 pointer-events-none" />
+      {/* Dim overlay for legibility — hidden in preview */}
+      {!previewing && <div className="absolute inset-0 bg-black/45 pointer-events-none" />}
 
-      {/* Prompter text column — narrow so ~4 words per line */}
+      {/* Prompter text column — hidden in preview */}
+      {!previewing && (
       <div className="absolute inset-0 flex justify-center pointer-events-none">
         <div className="relative h-full w-full max-w-3xl">
           {/* fade gradients */}
