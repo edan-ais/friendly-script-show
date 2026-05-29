@@ -402,7 +402,8 @@ export function DocumentDesigner() {
           height: 100%;
         }
         .doc-flow[data-columns="2"] .doc-block { margin-bottom: var(--doc-block-gap); }
-        .doc-block { break-inside: avoid; margin: 0; }
+        .doc-block { break-inside: avoid; margin: 0; max-width: 100%; }
+        .doc-flow[data-columns="1"] .doc-block + .doc-block { margin-top: var(--doc-section-gap); }
         .doc-heading { margin: var(--doc-section-gap) 0 0; font-size: var(--doc-heading-font); line-height: 1.12; font-weight: 800; letter-spacing: 0; }
         .doc-subheading { margin: var(--doc-section-gap) 0 0; font-size: var(--doc-subheading-font); line-height: 1.2; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; }
         .doc-paragraph { font-size: var(--doc-body-font); line-height: var(--doc-line); }
