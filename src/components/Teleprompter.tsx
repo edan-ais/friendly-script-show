@@ -146,7 +146,15 @@ export function Teleprompter() {
     const stream = streamRef.current;
     if (!stream) return;
     chunksRef.current = [];
-    const mimeCandidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+    // Prefer mp4 on Safari/iOS (records H.264/AAC natively — no conversion needed).
+    // Other browsers fall through to webm.
+    const mimeCandidates = [
+      "video/mp4;codecs=h264,aac",
+      "video/mp4",
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+    ];
     const mime = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
     const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
     rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
