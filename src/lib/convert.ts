@@ -31,6 +31,12 @@ function extensionFor(input: Blob): string {
   return "webm";
 }
 
+function blobFromData(data: Awaited<ReturnType<FFmpeg["readFile"]>>, type: string): Blob {
+  const bytes = typeof data === "string" ? new TextEncoder().encode(data) : data;
+  const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  return new Blob([copy], { type });
+}
+
 async function runConversion(input: Blob, args: string[], outputName: string): Promise<Blob> {
   const ff = await getFFmpeg();
   const { fetchFile } = await import("@ffmpeg/util");
@@ -41,8 +47,7 @@ async function runConversion(input: Blob, args: string[], outputName: string): P
     const code = await ff.exec(["-i", inputName, ...args, outputName]);
     if (code !== 0) throw new Error(`FFmpeg exited with code ${code}`);
     const data = await ff.readFile(outputName);
-    const bytes = typeof data === "string" ? new TextEncoder().encode(data) : data;
-    return new Blob([bytes], { type: "video/mp4" });
+    return blobFromData(data, "video/mp4");
   } finally {
     await ff.deleteFile(inputName).catch(() => {});
     await ff.deleteFile(outputName).catch(() => {});
@@ -66,8 +71,7 @@ export async function videoToMp3(input: Blob): Promise<Blob> {
     const code = await ff.exec(["-i", inputName, "-vn", "-map", "0:a:0?", "-c:a", "libmp3lame", "-b:a", "192k", outputName]);
     if (code !== 0) throw new Error(`FFmpeg exited with code ${code}`);
     const data = await ff.readFile(outputName);
-    const bytes = typeof data === "string" ? new TextEncoder().encode(data) : data;
-    return new Blob([bytes], { type: "audio/mpeg" });
+    return blobFromData(data, "audio/mpeg");
   } finally {
     await ff.deleteFile(inputName).catch(() => {});
     await ff.deleteFile(outputName).catch(() => {});
