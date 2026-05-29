@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, Circle, Square, Download, Type, Gauge, FlipHorizontal } from "lucide-react";
+import { Play, Pause, RotateCcw, Circle, Square, Download, Type, Gauge, FlipHorizontal, Trash2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
