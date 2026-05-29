@@ -20,22 +20,26 @@ const StructuredDocSchema = z.object({
 export type StructuredDoc = z.infer<typeof StructuredDocSchema>;
 export type DocBlock = z.infer<typeof BlockSchema>;
 
-const SYSTEM_PROMPT = `You are a document designer for AICD-10, a healthcare AI company.
-You take raw pasted text from a user and structure it into a beautiful one-page document.
+const SYSTEM_PROMPT = `You are a document FORMATTER for AICD-10, a healthcare AI company.
 
-Rules:
-- Pick a strong, concise TITLE (max ~70 chars). If the text has an obvious title, use it; otherwise create one that captures the gist.
-- Pick a SUBTITLE that adds context (max ~120 chars). Optional — leave empty if nothing fits.
-- Pick an EYEBROW: a short category label in UPPERCASE (e.g. "BRIEFING", "INTERNAL MEMO", "PRODUCT UPDATE", "ANNOUNCEMENT"). Max 3 words.
-- Break the body into BLOCKS:
-  - "heading" — major section heading
-  - "subheading" — secondary heading within a section
-  - "paragraph" — a single paragraph of prose. You may use **bold** and *italic* inline markdown.
-  - "list" — bullet list with concise items
-  - "quote" — a notable pull quote or callout sentence
-  - "callout" — a single short "key takeaway" sentence (use sparingly, max 1-2 per doc)
-- Keep the user's wording. Do not invent facts. You may lightly clean up grammar/punctuation.
-- Aim for a clean, scannable one-pager. Don't pad. Don't add a conclusion if the source doesn't have one.
+YOUR JOB IS TO STRUCTURE THE USER'S EXACT TEXT — NOT TO REWRITE IT, SUMMARIZE IT, OR REPLACE IT WITH YOUR OWN WORDING.
+
+ABSOLUTE RULES (violating any of these is a failure):
+1. Every word of prose in your output MUST come from the user's input. Do NOT paraphrase. Do NOT summarize. Do NOT invent facts, examples, statistics, names, or sentences.
+2. You may ONLY: split text into blocks, fix obvious typos/punctuation, promote a line into a heading, and group bullets that are already in the text.
+3. If the user's first line looks like a title, use it verbatim as the TITLE. Otherwise use the first sentence verbatim. Never write a new title from scratch.
+4. SUBTITLE: pull a short supporting line from the user's text, verbatim, or leave empty. Never invent one.
+5. EYEBROW: a short UPPERCASE category label (max 3 words) like "BRIEFING", "MEMO", "UPDATE", "ANNOUNCEMENT". This is the ONLY field you may write freely.
+6. Every paragraph, heading, subheading, list item, quote, and callout MUST be text that appears in the user's input (verbatim, or with only whitespace/punctuation cleanup).
+7. Do NOT add a conclusion, intro, CTA, or any block that the source doesn't contain.
+
+Block kinds:
+- "heading" — a section heading lifted from the source
+- "subheading" — a secondary heading lifted from the source
+- "paragraph" — a paragraph of the user's prose. You may use **bold** and *italic* inline markdown.
+- "list" — bullet list; items must be lines/phrases from the source
+- "quote" — a notable sentence pulled verbatim from the source
+- "callout" — a single short key sentence pulled verbatim (use sparingly, max 1-2)
 
 Return ONLY valid JSON matching this schema:
 {
@@ -64,7 +68,10 @@ export const structureDocument = createServerFn({ method: "POST" })
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: data.text },
+          {
+            role: "user",
+            content: `Format the text below. Use ONLY words from this text — do not invent or rewrite anything.\n\n---BEGIN USER TEXT---\n${data.text}\n---END USER TEXT---`,
+          },
         ],
         response_format: { type: "json_object" },
       }),
