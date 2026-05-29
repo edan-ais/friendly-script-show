@@ -259,21 +259,21 @@ export function DocumentDesigner() {
         {/* Preview / Print page */}
         <div className="print-root flex justify-center">
           <div
-            className="print-page relative aspect-[8.5/11] w-full max-w-[8.5in] overflow-hidden shadow-[0_20px_60px_-20px_rgba(14,23,48,0.35)]"
+            className="print-page relative flex aspect-[8.5/11] w-full max-w-[8.5in] flex-col overflow-hidden shadow-[0_20px_60px_-20px_rgba(14,23,48,0.35)]"
             style={{ backgroundColor: BRAND.paper, fontFamily: "Inter, system-ui, sans-serif", color: BRAND.navy }}
           >
             {/* Decorative red side bar */}
             <div className="absolute inset-y-0 left-0 w-2" style={{ backgroundColor: BRAND.red }} />
             {/* Decorative top accent */}
             <div
-              className="absolute top-0 right-0 h-32 w-32 opacity-[0.08]"
+              className="pointer-events-none absolute top-0 right-0 h-32 w-32 opacity-[0.08]"
               style={{
                 background: `radial-gradient(circle at top right, ${BRAND.red}, transparent 70%)`,
               }}
             />
 
             {/* Header */}
-            <div className="flex items-end justify-between px-10 pt-7 pb-4">
+            <div className="flex shrink-0 items-end justify-between px-10 pt-7 pb-4">
               <img src={logoUrl} alt={BRAND.name} className="h-9 w-auto" />
               <div className="text-right">
                 {doc?.eyebrow && (
@@ -291,7 +291,7 @@ export function DocumentDesigner() {
             </div>
 
             {/* Title block */}
-            <div className="px-10">
+            <div className="shrink-0 px-10">
               <div className="h-px w-full" style={{ backgroundColor: `${BRAND.navy}15` }} />
               <h1
                 className="mt-4 text-[26px] font-extrabold leading-[1.1] tracking-tight"
@@ -310,8 +310,8 @@ export function DocumentDesigner() {
               <div className="mt-3 h-[2.5px] w-10 rounded-full" style={{ backgroundColor: BRAND.red }} />
             </div>
 
-            {/* Body */}
-            <div className="px-10 pt-4 pb-14">
+            {/* Body — auto-fits to remaining vertical space */}
+            <div className="min-h-0 flex-1 px-10 pt-4 pb-3">
               {!doc ? (
                 <div
                   className="mt-6 rounded-lg border border-dashed p-6 text-center text-sm"
@@ -320,17 +320,19 @@ export function DocumentDesigner() {
                   Paste your text on the left and click <span className="font-semibold">Format with AI</span> to generate a branded one-pager.
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {doc.blocks.map((b, i) => (
-                    <BlockView key={i} block={b} index={i} />
-                  ))}
-                </div>
+                <AutoFit deps={[doc]}>
+                  <div className="space-y-2">
+                    {doc.blocks.map((b, i) => (
+                      <BlockView key={i} block={b} index={i} />
+                    ))}
+                  </div>
+                </AutoFit>
               )}
             </div>
 
             {/* Footer slogan */}
             <div
-              className="absolute inset-x-0 bottom-0 px-10 py-3 text-center text-[10px] italic tracking-wide"
+              className="shrink-0 px-10 py-3 text-center text-[10px] italic tracking-wide"
               style={{ borderTop: `1px solid ${BRAND.navy}15`, color: BRAND.navy, opacity: 0.7 }}
             >
               {BRAND.tagline}
