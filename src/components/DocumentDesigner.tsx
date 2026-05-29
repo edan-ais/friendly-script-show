@@ -1,34 +1,36 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Printer } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, Printer, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import logoUrl from "@/assets/aicd10-logo.png";
+import { structureDocument, type StructuredDoc, type DocBlock } from "@/lib/document.functions";
 
 const BRAND = {
   name: "AICD-10",
   tagline: "The AI infrastructure for clinical documentation & reimbursement.",
   red: "#ef3340",
   navy: "#0e1730",
-  cream: "#f9eee8",
+  cream: "#fdf6f0",
+  paper: "#fffdfa",
 };
 
-const PLACEHOLDER = `Document Title
-Internal Memo · Optional subtitle
+const SAMPLE = `AICD-10 closes a $1.2M seed round to scale AI-assisted medical coding
 
-Write your opening paragraph here. Just type — the first line becomes the title and the next short line becomes the subtitle.
+We're thrilled to share that AICD-10 has closed a $1.2M seed round to accelerate the build-out of HUBL, our proprietary ingestion layer that normalizes any clinical input into structured, audit-ready reimbursement workflows.
 
-## A section heading
-Use ## at the start of a line to make a section heading.
+What this enables:
+- Native EHR connectors across Epic, Cerner, athena, and eCW
+- Live ICD-10 and CPT intelligence with payer-specific rules
+- Coder-in-the-loop review tools that learn from every correction
 
-You can make text **bold** or *italic* inline. Separate paragraphs with a blank line.
+Healthcare reimbursement still depends on fragmented manual coding workflows, creating billions in denials and delayed payments. Our mission is to give every provider a path from chart to cash that is fast, accurate, and explainable.
 
-- Bullet points start with a dash
-- They group into a tidy list
-- Great for highlights or takeaways`;
+A huge thank you to our pilot partners and investors. We're hiring across engineering, clinical operations, and design.`;
 
-// --- inline formatting: **bold** and *italic* ---
-function renderInline(text: string, keyBase: string) {
+function renderInline(text: string, key: string) {
   const nodes: React.ReactNode[] = [];
   const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
   let last = 0;
@@ -36,212 +38,234 @@ function renderInline(text: string, keyBase: string) {
   let m: RegExpExecArray | null;
   while ((m = regex.exec(text)) !== null) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
-    const token = m[0];
-    if (token.startsWith("**")) {
-      nodes.push(<strong key={`${keyBase}-b-${i++}`}>{token.slice(2, -2)}</strong>);
-    } else {
-      nodes.push(<em key={`${keyBase}-i-${i++}`}>{token.slice(1, -1)}</em>);
-    }
-    last = m.index + token.length;
+    const tok = m[0];
+    if (tok.startsWith("**")) nodes.push(<strong key={`${key}-b-${i++}`}>{tok.slice(2, -2)}</strong>);
+    else nodes.push(<em key={`${key}-i-${i++}`}>{tok.slice(1, -1)}</em>);
+    last = m.index + tok.length;
   }
   if (last < text.length) nodes.push(text.slice(last));
   return nodes;
 }
 
-type Block =
-  | { kind: "h2"; text: string }
-  | { kind: "p"; text: string }
-  | { kind: "ul"; items: string[] };
-
-// Parse raw text → title, subtitle, blocks
-function parseDoc(raw: string) {
-  const lines = raw.replace(/\r\n/g, "\n").split("\n");
-  // strip leading blank lines
-  while (lines.length && lines[0].trim() === "") lines.shift();
-
-  const title = (lines.shift() ?? "").trim();
-  let subtitle = "";
-
-  // peek next non-blank-block for subtitle: short single line followed by blank line
-  if (lines.length) {
-    const candidate = lines[0]?.trim() ?? "";
-    const isShort = candidate.length > 0 && candidate.length <= 90 && !candidate.startsWith("#") && !candidate.startsWith("-");
-    const nextBlank = (lines[1] ?? "").trim() === "";
-    if (isShort && nextBlank) {
-      subtitle = candidate;
-      lines.shift();
-    }
+function BlockView({ block, index }: { block: DocBlock; index: number }) {
+  switch (block.kind) {
+    case "heading":
+      return (
+        <h2 className="mt-7 text-[19px] font-bold tracking-tight" style={{ color: BRAND.navy }}>
+          {renderInline(block.text, `h-${index}`)}
+        </h2>
+      );
+    case "subheading":
+      return (
+        <h3
+          className="mt-5 text-[12px] font-semibold uppercase tracking-[0.16em]"
+          style={{ color: BRAND.red }}
+        >
+          {renderInline(block.text, `sh-${index}`)}
+        </h3>
+      );
+    case "paragraph":
+      return (
+        <p className="text-[13.5px] leading-[1.7]" style={{ color: BRAND.navy }}>
+          {renderInline(block.text, `p-${index}`)}
+        </p>
+      );
+    case "list":
+      return (
+        <ul className="space-y-1.5 text-[13.5px] leading-[1.65]" style={{ color: BRAND.navy }}>
+          {block.items.map((it, j) => (
+            <li key={j} className="flex gap-3">
+              <span
+                className="mt-[9px] inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ backgroundColor: BRAND.red }}
+              />
+              <span>{renderInline(it, `li-${index}-${j}`)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+    case "quote":
+      return (
+        <blockquote
+          className="my-2 border-l-[3px] pl-4 text-[14px] italic leading-[1.65]"
+          style={{ borderColor: BRAND.red, color: BRAND.navy }}
+        >
+          {renderInline(block.text, `q-${index}`)}
+        </blockquote>
+      );
+    case "callout":
+      return (
+        <div
+          className="my-2 rounded-md px-4 py-3 text-[13px] font-medium leading-snug"
+          style={{ backgroundColor: BRAND.cream, color: BRAND.navy, borderLeft: `3px solid ${BRAND.red}` }}
+        >
+          {renderInline(block.text, `c-${index}`)}
+        </div>
+      );
   }
-
-  // Group remaining lines into paragraphs by blank lines
-  const blocks: Block[] = [];
-  let buffer: string[] = [];
-
-  const flushBuffer = () => {
-    if (!buffer.length) return;
-    // Check if this is a bullet list
-    const allBullets = buffer.every((l) => /^\s*-\s+/.test(l));
-    if (allBullets) {
-      blocks.push({
-        kind: "ul",
-        items: buffer.map((l) => l.replace(/^\s*-\s+/, "").trim()),
-      });
-    } else {
-      // join with spaces (soft wraps), but treat bullets/headings inside as their own
-      const joined = buffer.join(" ").trim();
-      blocks.push({ kind: "p", text: joined });
-    }
-    buffer = [];
-  };
-
-  for (const rawLine of lines) {
-    const line = rawLine.replace(/\s+$/, "");
-    if (line.trim() === "") {
-      flushBuffer();
-      continue;
-    }
-    if (/^##\s+/.test(line)) {
-      flushBuffer();
-      blocks.push({ kind: "h2", text: line.replace(/^##\s+/, "").trim() });
-      continue;
-    }
-    if (/^\s*-\s+/.test(line)) {
-      // if buffer has non-bullet content, flush first
-      if (buffer.length && !buffer.every((l) => /^\s*-\s+/.test(l))) flushBuffer();
-      buffer.push(line);
-      continue;
-    }
-    // regular line — if buffer was bullets, flush
-    if (buffer.length && buffer.every((l) => /^\s*-\s+/.test(l))) flushBuffer();
-    buffer.push(line);
-  }
-  flushBuffer();
-
-  return { title, subtitle, blocks };
 }
 
 export function DocumentDesigner() {
-  const [raw, setRaw] = useState(PLACEHOLDER);
-  const { title, subtitle, blocks } = useMemo(() => parseDoc(raw), [raw]);
+  const [raw, setRaw] = useState(SAMPLE);
+  const [doc, setDoc] = useState<StructuredDoc | null>(null);
+  const [loading, setLoading] = useState(false);
+  const structureFn = useServerFn(structureDocument);
 
-  const today = useMemo(
-    () =>
-      new Date().toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-    [],
-  );
+  const today = new Date().toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-  const handlePrint = () => window.print();
+  const handleFormat = async () => {
+    if (!raw.trim()) {
+      toast.error("Paste some text first.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await structureFn({ data: { text: raw.trim() } });
+      setDoc(result);
+      toast.success("Document formatted.");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to format document.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-neutral-100">
+    <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #f5f1ec 0%, #ece6df 100%)" }}>
       <style>{`
         @media print {
           body { background: white !important; }
           .no-print { display: none !important; }
-          .print-page { box-shadow: none !important; margin: 0 !important; }
+          .print-page { box-shadow: none !important; margin: 0 !important; transform: none !important; }
         }
         @page { size: letter; margin: 0; }
       `}</style>
 
-      <header className="no-print sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur">
+      <header className="no-print sticky top-0 z-10 border-b border-neutral-200/70 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900">
             <ArrowLeft className="h-4 w-4" /> Apps
           </Link>
           <div className="text-sm font-semibold text-neutral-900">Document Designer</div>
-          <Button onClick={handlePrint} size="sm" className="gap-2">
-            <Printer className="h-4 w-4" /> Print / Save PDF
+          <Button onClick={() => window.print()} size="sm" variant="outline" className="gap-2" disabled={!doc}>
+            <Printer className="h-4 w-4" /> Save as PDF
           </Button>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[360px_1fr]">
-        {/* Single paste box */}
-        <aside className="no-print h-fit space-y-3 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm lg:sticky lg:top-20">
+      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[380px_1fr]">
+        {/* Editor */}
+        <aside className="no-print h-fit space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm lg:sticky lg:top-20">
           <div>
-            <div className="text-sm font-semibold text-neutral-900">Paste your text</div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
+              <Sparkles className="h-4 w-4" style={{ color: BRAND.red }} /> Paste your text
+            </div>
             <p className="mt-1 text-xs text-neutral-500">
-              First line = title. Optional short next line = subtitle. Use
-              <code className="mx-1 rounded bg-neutral-100 px-1 py-0.5 text-[11px]">##</code> for headings,
-              <code className="mx-1 rounded bg-neutral-100 px-1 py-0.5 text-[11px]">**bold**</code>,
-              <code className="mx-1 rounded bg-neutral-100 px-1 py-0.5 text-[11px]">*italic*</code>, and
-              <code className="mx-1 rounded bg-neutral-100 px-1 py-0.5 text-[11px]">- bullets</code>.
+              Paste anything — an announcement, memo, notes. AI will pick the title, subtitle, headings, and lists.
             </p>
           </div>
           <Textarea
             value={raw}
             onChange={(e) => setRaw(e.target.value)}
-            rows={26}
+            rows={22}
+            placeholder="Paste your document text here…"
             className="resize-none bg-white font-mono text-sm text-neutral-900"
           />
+          <Button
+            onClick={handleFormat}
+            disabled={loading || !raw.trim()}
+            className="w-full gap-2"
+            style={{ backgroundColor: BRAND.red, color: "white" }}
+          >
+            {loading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Formatting…</>
+            ) : (
+              <><Sparkles className="h-4 w-4" /> Format with AI</>
+            )}
+          </Button>
         </aside>
 
-        {/* Page preview */}
+        {/* Preview / Print page */}
         <div className="flex justify-center">
           <div
-            className="print-page relative aspect-[8.5/11] w-full max-w-[8.5in] overflow-hidden bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.25)]"
-            style={{ fontFamily: "Inter, system-ui, sans-serif", color: BRAND.navy }}
+            className="print-page relative aspect-[8.5/11] w-full max-w-[8.5in] overflow-hidden shadow-[0_20px_60px_-20px_rgba(14,23,48,0.35)]"
+            style={{ backgroundColor: BRAND.paper, fontFamily: "Inter, system-ui, sans-serif", color: BRAND.navy }}
           >
-            {/* Brand header */}
+            {/* Decorative red side bar */}
+            <div className="absolute inset-y-0 left-0 w-2" style={{ backgroundColor: BRAND.red }} />
+            {/* Decorative top accent */}
             <div
-              className="flex items-center justify-between px-12 py-6"
-              style={{ backgroundColor: BRAND.cream, borderBottom: `4px solid ${BRAND.red}` }}
-            >
-              <img src={logoUrl} alt={BRAND.name} className="h-12 w-auto" />
+              className="absolute top-0 right-0 h-32 w-32 opacity-[0.08]"
+              style={{
+                background: `radial-gradient(circle at top right, ${BRAND.red}, transparent 70%)`,
+              }}
+            />
+
+            {/* Header */}
+            <div className="flex items-end justify-between px-14 pt-10 pb-6">
+              <img src={logoUrl} alt={BRAND.name} className="h-11 w-auto" />
               <div className="text-right">
-                {subtitle && (
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: BRAND.red }}>
-                    {subtitle}
+                {doc?.eyebrow && (
+                  <div
+                    className="text-[10px] font-bold uppercase tracking-[0.22em]"
+                    style={{ color: BRAND.red }}
+                  >
+                    {doc.eyebrow}
                   </div>
                 )}
-                <div className="text-xs" style={{ color: BRAND.navy, opacity: 0.7 }}>
+                <div className="mt-0.5 text-[11px]" style={{ color: BRAND.navy, opacity: 0.55 }}>
                   {today}
                 </div>
               </div>
             </div>
 
-            {/* Body */}
-            <div className="px-12 py-10 pb-16">
-              <h1 className="text-4xl font-extrabold leading-tight tracking-tight" style={{ color: BRAND.navy }}>
-                {title || "Untitled"}
+            {/* Title block */}
+            <div className="px-14">
+              <div className="h-px w-full" style={{ backgroundColor: `${BRAND.navy}15` }} />
+              <h1
+                className="mt-6 text-[34px] font-extrabold leading-[1.1] tracking-tight"
+                style={{ color: BRAND.navy }}
+              >
+                {doc?.title || "Your document title appears here"}
               </h1>
-              <div className="mt-2 h-1 w-16 rounded-full" style={{ backgroundColor: BRAND.red }} />
-
-              <div className="mt-8 space-y-4 text-[14.5px] leading-relaxed" style={{ color: BRAND.navy }}>
-                {blocks.length === 0 ? (
-                  <p style={{ opacity: 0.4 }}>Your document body will appear here.</p>
-                ) : (
-                  blocks.map((b, i) => {
-                    if (b.kind === "h2") {
-                      return (
-                        <h2 key={i} className="pt-2 text-xl font-bold tracking-tight" style={{ color: BRAND.red }}>
-                          {renderInline(b.text, `h2-${i}`)}
-                        </h2>
-                      );
-                    }
-                    if (b.kind === "ul") {
-                      return (
-                        <ul key={i} className="ml-5 list-disc space-y-1.5 marker:text-[color:var(--brand-red)]" style={{ ["--brand-red" as never]: BRAND.red }}>
-                          {b.items.map((it, j) => (
-                            <li key={j}>{renderInline(it, `li-${i}-${j}`)}</li>
-                          ))}
-                        </ul>
-                      );
-                    }
-                    return <p key={i}>{renderInline(b.text, `p-${i}`)}</p>;
-                  })
-                )}
-              </div>
+              {doc?.subtitle && (
+                <p
+                  className="mt-3 text-[15px] leading-snug"
+                  style={{ color: BRAND.navy, opacity: 0.7 }}
+                >
+                  {doc.subtitle}
+                </p>
+              )}
+              <div className="mt-5 h-[3px] w-12 rounded-full" style={{ backgroundColor: BRAND.red }} />
             </div>
 
-            {/* Footer: slogan only */}
+            {/* Body */}
+            <div className="px-14 pt-6 pb-20">
+              {!doc ? (
+                <div
+                  className="mt-8 rounded-lg border border-dashed p-8 text-center text-sm"
+                  style={{ borderColor: `${BRAND.navy}25`, color: `${BRAND.navy}80` }}
+                >
+                  Paste your text on the left and click <span className="font-semibold">Format with AI</span> to generate a branded one-pager.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {doc.blocks.map((b, i) => (
+                    <BlockView key={i} block={b} index={i} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer slogan */}
             <div
-              className="absolute inset-x-0 bottom-0 px-12 py-4 text-center text-[11px] italic"
-              style={{ borderTop: `1px solid ${BRAND.cream}`, color: BRAND.navy, opacity: 0.75 }}
+              className="absolute inset-x-0 bottom-0 px-14 py-4 text-center text-[10.5px] italic tracking-wide"
+              style={{ borderTop: `1px solid ${BRAND.navy}15`, color: BRAND.navy, opacity: 0.7 }}
             >
               {BRAND.tagline}
             </div>
