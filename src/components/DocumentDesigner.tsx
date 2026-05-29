@@ -128,7 +128,7 @@ function AutoFit({ children, deps }: { children: React.ReactNode; deps: unknown[
       const natural = inner.scrollHeight;
       if (!available || !natural) return;
       const raw = available / natural;
-      const next = Math.max(0.55, Math.min(2.5, raw));
+      const next = Math.max(0.5, Math.min(4, raw));
       setScale(next);
     };
 
