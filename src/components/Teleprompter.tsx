@@ -550,16 +550,23 @@ export function Teleprompter() {
         </div>
       )}
 
-      {/* Back to setup — top right when not recording */}
+      {/* Back to home — top right when not recording */}
       {!recording && (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={exitStage}
-          className="absolute top-4 right-4 z-30 rounded-full shadow-xl"
-        >
-          <ArrowLeft className="size-4" /> Setup
-        </Button>
+        <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={exitStage}
+            className="rounded-full shadow-xl"
+          >
+            <ArrowLeft className="size-4" /> Setup
+          </Button>
+          <Button size="sm" variant="default" asChild className="rounded-full shadow-xl">
+            <Link to="/">
+              <ArrowLeft className="size-4" /> Home
+            </Link>
+          </Button>
+        </div>
       )}
 
       {/* Floating zoom controls */}
