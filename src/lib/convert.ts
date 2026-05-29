@@ -66,25 +66,6 @@ function extensionFor(input: Blob): ConversionResult["ext"] {
   return "webm";
 }
 
-function mimeForExt(ext: ConversionResult["ext"]): string {
-  switch (ext) {
-    case "mp4":
-      return "video/mp4";
-    case "mp3":
-      return "audio/mpeg";
-    case "m4a":
-      return "audio/mp4";
-    case "mov":
-      return "video/quicktime";
-    case "mkv":
-      return "video/x-matroska";
-    case "avi":
-      return "video/x-msvideo";
-    default:
-      return "video/webm";
-  }
-}
-
 function isIOS(): boolean {
   if (typeof navigator === "undefined") return false;
   return (
@@ -271,20 +252,18 @@ export async function videoToMp4(
       );
       return { blob, ext: "mp4", mimeType: "video/mp4", converted: true };
     } catch (error) {
-      console.warn("[convert] MP4/MOV rewrap failed; returning original", error);
-      return originalResult(
-        input,
-        "This phone could not rewrap the clip, so the original file was downloaded instead.",
-      );
+      console.warn("[convert] MP4/MOV rewrap failed", error);
+      throw new Error("This clip could not be prepared as an iPhone-compatible MP4.");
     }
   }
 
   const profiles =
     isIOS() || input.size > 75 * 1024 * 1024
       ? [
-          { width: 540, crf: 32, audioBitrate: "96k", audio: true },
-          { width: 426, crf: 35, audioBitrate: "64k", audio: true },
-          { width: 426, crf: 36, audio: false },
+          { width: 426, crf: 34, audioBitrate: "64k", audio: true },
+          { width: 320, crf: 36, audioBitrate: "48k", audio: true },
+          { width: 320, crf: 38, audio: false },
+          { width: 240, crf: 40, audio: false },
         ]
       : [
           { width: 854, crf: 29, audioBitrate: "128k", audio: true },
