@@ -64,11 +64,11 @@ export async function videoToMp4(input: Blob, opts?: { mirror?: boolean }): Prom
 }
 
 export async function videoToMp3(input: Blob): Promise<Blob> {
-  const outputName = `out-${jobId + 1}.mp3`;
   const ff = await getFFmpeg();
   const { fetchFile } = await import("@ffmpeg/util");
   const id = ++jobId;
   const inputName = `in-${id}.${extensionFor(input)}`;
+  const outputName = `out-${id}.mp3`;
   await ff.writeFile(inputName, await fetchFile(input));
   try {
     const code = await ff.exec(["-i", inputName, "-vn", "-map", "0:a:0?", "-c:a", "libmp3lame", "-b:a", "192k", outputName]);
