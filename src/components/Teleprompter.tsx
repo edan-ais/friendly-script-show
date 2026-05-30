@@ -31,6 +31,8 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { listClips, saveClip, deleteClip, type SavedClip } from "@/lib/video-bank";
 import { videoToMp4, webmToMp4 } from "@/lib/convert";
+import { useAuth, signOut } from "@/hooks/use-auth";
+import { loadOrCreateScript, saveScript } from "@/lib/persistence/scripts";
 
 const SAMPLE = `Welcome to Prompter.
 
@@ -77,8 +79,12 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function Teleprompter() {
+  const { user, ready } = useAuth();
   const [mode, setMode] = useState<Mode>("setup");
-  const [text, setText] = useState(SAMPLE);
+  const [text, setText] = useState("");
+  const [scriptId, setScriptId] = useState<string | null>(null);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(60);
   const [fontSize, setFontSize] = useState(56);
@@ -106,13 +112,45 @@ export function Teleprompter() {
   const rafRef = useRef<number | null>(null);
   const lastTsRef = useRef<number | null>(null);
   const recStartRef = useRef<number>(0);
+  const saveTimerRef = useRef<number | null>(null);
 
-  // Load saved clips on mount
+  // Load script + clips once the user is known
   useEffect(() => {
+    if (!user) return;
+    loadOrCreateScript(user.id)
+      .then((row) => {
+        setScriptId(row.id);
+        setText(row.content || SAMPLE);
+        setScriptLoaded(true);
+      })
+      .catch((e) => {
+        console.error(e);
+        toast.error("Couldn't load your script");
+        setText(SAMPLE);
+        setScriptLoaded(true);
+      });
     listClips()
       .then(setClips)
-      .catch(() => {});
-  }, []);
+      .catch((e) => console.error("listClips failed", e));
+  }, [user]);
+
+  // Debounced autosave of script text
+  useEffect(() => {
+    if (!scriptId || !scriptLoaded) return;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      setSaving(true);
+      saveScript(scriptId, { content: text })
+        .catch((e) => {
+          console.error(e);
+          toast.error("Save failed");
+        })
+        .finally(() => setSaving(false));
+    }, 600);
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [text, scriptId, scriptLoaded]);
 
   // Webcam — only when on stage
   useEffect(() => {
