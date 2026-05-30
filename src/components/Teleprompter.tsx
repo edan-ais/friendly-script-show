@@ -498,7 +498,7 @@ export function Teleprompter() {
   const videoTransform = `${mirrorVideo ? "scaleX(-1) " : ""}scale(${zoom})`;
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-black text-foreground relative">
+    <div className="h-[100dvh] w-screen overflow-hidden bg-black text-foreground relative">
       <video
         ref={videoRef}
         autoPlay
@@ -553,7 +553,7 @@ export function Teleprompter() {
       )}
 
       {recording && (
-        <div className="absolute top-6 left-6 z-30 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive text-destructive-foreground text-sm font-medium">
+        <div className="absolute left-3 z-30 top-[max(0.75rem,env(safe-area-inset-top))] flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive text-destructive-foreground text-sm font-medium">
           <Circle className="size-3 fill-current animate-pulse" />
           REC {fmt(elapsed)}
         </div>
@@ -569,7 +569,7 @@ export function Teleprompter() {
 
       {/* Back to home — top right when not recording */}
       {!recording && (
-        <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+        <div className="absolute right-3 z-30 flex items-center gap-2 top-[max(0.75rem,env(safe-area-inset-top))]">
           <Button
             size="sm"
             variant="secondary"
@@ -627,7 +627,7 @@ export function Teleprompter() {
 
       {/* Bottom controls when previewing only */}
       {previewing && !recording && (
-        <div className="absolute bottom-8 inset-x-0 z-30 flex items-center justify-center gap-2">
+        <div className="absolute inset-x-0 z-30 flex flex-wrap items-center justify-center gap-2 px-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button
             size="lg"
             variant="secondary"
@@ -650,7 +650,7 @@ export function Teleprompter() {
 
       {/* Bottom controls when recording */}
       {recording && (
-        <div className="absolute bottom-8 inset-x-0 z-30 flex items-center justify-center gap-2">
+        <div className="absolute inset-x-0 z-30 flex flex-wrap items-center justify-center gap-2 px-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button
             size="lg"
             variant="secondary"
@@ -680,7 +680,7 @@ export function Teleprompter() {
 
       {/* Bottom controls when neither (just landed, e.g. between preview/record) */}
       {!previewing && !recording && countdown === 0 && (
-        <div className="absolute bottom-8 inset-x-0 z-30 flex items-center justify-center gap-2">
+        <div className="absolute inset-x-0 z-30 flex flex-wrap items-center justify-center gap-2 px-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button size="lg" variant="secondary" onClick={reset} className="rounded-full shadow-2xl">
             <RotateCcw className="size-4" /> Reset
           </Button>
