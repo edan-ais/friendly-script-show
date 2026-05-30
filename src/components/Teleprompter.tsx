@@ -273,7 +273,14 @@ export function Teleprompter() {
       setClips((prev) => [saved, ...prev]);
       toast.success("Saved to your video bank");
     };
-    rec.start();
+    rec.onerror = (e) => {
+      console.error("MediaRecorder error", e);
+      toast.error("Recording error — try again");
+    };
+    // Timeslice: flush a chunk every second so we get a well-formed cluster
+    // stream instead of one giant blob at stop. This dramatically improves
+    // playback reliability for longer (15s+) WebM recordings.
+    rec.start(1000);
     recorderRef.current = rec;
     recStartRef.current = Date.now();
     setElapsed(0);
