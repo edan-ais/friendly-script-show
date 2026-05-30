@@ -498,7 +498,7 @@ export function Teleprompter() {
   const videoTransform = `${mirrorVideo ? "scaleX(-1) " : ""}scale(${zoom})`;
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-black text-foreground relative">
+    <div className="h-[100dvh] w-screen overflow-hidden bg-black text-foreground relative">
       <video
         ref={videoRef}
         autoPlay
