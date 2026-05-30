@@ -386,6 +386,20 @@ export function Teleprompter() {
     }
   };
 
+  // Wait for auth to resolve so we don't redirect prematurely
+  if (!ready) return <div className="min-h-screen bg-background" />;
+  if (!user) return <div className="min-h-screen bg-background" />;
+
+  // Don't render until the saved script content has been pulled from the server,
+  // otherwise the empty default would overwrite real saved content via autosave.
+  if (!scriptLoaded && mode === "setup") {
+    return (
+      <div className="min-h-screen w-full bg-background text-foreground flex items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   // -------------- SETUP SCREEN --------------
   if (mode === "setup") {
     return (
@@ -401,6 +415,9 @@ export function Teleprompter() {
               P
             </div>
             <h1 className="text-xl font-bold">Prompter</h1>
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {saving ? "Saving…" : "Saved"}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => setConverterOpen(true)}>
@@ -410,8 +427,12 @@ export function Teleprompter() {
               <Library className="size-4" /> <span className="hidden sm:inline">Bank</span>
               <span className="text-xs text-muted-foreground">({clips.length})</span>
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => signOut()}>
+              <span className="hidden sm:inline">Sign out</span>
+            </Button>
           </div>
         </header>
+
 
         <main className="max-w-2xl mx-auto p-4 sm:p-6 flex flex-col gap-6 pb-32">
           <section className="flex flex-col gap-2">
