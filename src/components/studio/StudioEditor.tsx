@@ -269,6 +269,15 @@ export function StudioEditor() {
   const videoAssets = project.assets.filter((a) => a.kind === "video");
   const audioAssets = project.assets.filter((a) => a.kind === "audio");
 
+  if (!ready || !user) return <div className="h-screen bg-[#08080f]" />;
+  if (!projectLoaded) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#08080f] text-white/60">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col bg-[#08080f] text-white">
       {/* Header */}
@@ -283,6 +292,7 @@ export function StudioEditor() {
             onChange={(e) => dispatch({ type: "rename", name: e.target.value })}
             className="h-8 w-56 border-transparent bg-transparent text-sm font-semibold focus-visible:border-white/20"
           />
+          <span className="text-xs text-white/40">{saving ? "Saving…" : "Saved"}</span>
         </div>
         <div className="flex items-center gap-3">
           <Select value={project.aspect} onValueChange={(v) => dispatch({ type: "set_aspect", aspect: v as Aspect })}>
@@ -298,8 +308,12 @@ export function StudioEditor() {
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             {exporting ? "Exporting..." : "Export MP4"}
           </Button>
+          <Button size="sm" variant="ghost" className="text-white/60" onClick={() => signOut()}>
+            Sign out
+          </Button>
         </div>
       </header>
+
 
       {progress && (
         <div className="border-b border-white/10 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-100">
