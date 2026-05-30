@@ -194,7 +194,10 @@ export function Timeline(props: Props) {
                   pxPerSec={pxPerSec}
                   color={t.color}
                   selected={selection?.track === t.key && selection.id === c.id}
-                  onSelect={() => setSelection({ track: t.key, id: c.id })}
+                  onSelect={() => {
+                    setSelection({ track: t.key, id: c.id });
+                    setPlayhead(c.start);
+                  }}
                   onResize={(newDur) =>
                     dispatch({
                       type: "update_clip",
