@@ -64,6 +64,7 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
           el.addEventListener("loadeddata", () => setMediaVersion((n) => n + 1));
           el.addEventListener("seeked", () => setMediaVersion((n) => n + 1));
           el.addEventListener("canplay", () => setMediaVersion((n) => n + 1));
+          el.load();
           vmap.set(a.id, el);
         }
       } else {
@@ -122,7 +123,11 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
           const baseY = (h - drawH) / 2;
           const offX = ((drawW - w) / 2) * clip.panX;
           const offY = ((drawH - h) / 2) * clip.panY;
-          ctx.drawImage(v, baseX - offX, baseY - offY, drawW, drawH);
+          if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            ctx.drawImage(v, baseX - offX, baseY - offY, drawW, drawH);
+          } else {
+            v.load();
+          }
         } catch {
           /* not yet decoded */
         }
@@ -138,6 +143,9 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
     for (const s of project.subtitles) {
       if (playhead < s.start || playhead >= s.start + s.duration) continue;
       drawTextBox(ctx, s.text, "bottom", 48, "#fff", "#000", 0.55, w, h);
+    }
+    if (project.subtitles.length === 0 && clip?.sourceLine) {
+      drawTextBox(ctx, clip.sourceLine, "bottom", 48, "#fff", "#000", 0.55, w, h);
     }
   }, [project, playhead, playing, w, h, mediaVersion]);
 
