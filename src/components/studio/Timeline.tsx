@@ -106,7 +106,7 @@ export function Timeline(props: Props) {
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7 text-white/60"
+            className="h-8 w-8 border border-white/20 bg-white/10 text-white shadow-sm hover:bg-white/20 hover:text-white"
             onClick={() => scrollByAmount(-1)}
             title="Scroll timeline left"
           >
@@ -115,7 +115,7 @@ export function Timeline(props: Props) {
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7 text-white/60"
+            className="h-8 w-8 border border-white/20 bg-white/10 text-white shadow-sm hover:bg-white/20 hover:text-white"
             onClick={() => scrollByAmount(1)}
             title="Scroll timeline right"
           >
@@ -158,6 +158,24 @@ export function Timeline(props: Props) {
         className="relative flex-1 overflow-x-scroll overflow-y-auto [scrollbar-color:rgba(255,255,255,0.35)_rgba(255,255,255,0.08)] [scrollbar-gutter:stable]"
         ref={scrollerRef}
       >
+        <Button
+          size="icon"
+          variant="ghost"
+          className="sticky left-2 top-1/2 z-30 h-10 w-10 -translate-y-1/2 border border-white/25 bg-black/70 text-white shadow-lg backdrop-blur hover:bg-black/90 hover:text-white"
+          onClick={() => scrollByAmount(-1)}
+          title="Scroll timeline left"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="sticky left-[calc(100%-3rem)] top-1/2 z-30 h-10 w-10 -translate-y-1/2 border border-white/25 bg-black/70 text-white shadow-lg backdrop-blur hover:bg-black/90 hover:text-white"
+          onClick={() => scrollByAmount(1)}
+          title="Scroll timeline right"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
         <div style={{ width: timelineWidth }} className="relative min-w-full pb-4">
           {/* Ruler */}
           <div
