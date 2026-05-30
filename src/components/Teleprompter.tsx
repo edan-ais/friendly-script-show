@@ -20,6 +20,7 @@ import {
   FileVideo,
   Loader2,
   X,
+  RotateCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
