@@ -241,6 +241,7 @@ export function Timeline(props: Props) {
             </div>
           ))}
         </div>
+        </div>
       </div>
     </div>
   );
