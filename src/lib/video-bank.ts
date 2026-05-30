@@ -70,7 +70,7 @@ export async function listClips(): Promise<SavedClip[]> {
     if (!f.name || f.name === ".emptyFolderPlaceholder") continue;
     const meta = parseFilename(f.name);
     if (!meta) continue;
-    const path = `${folder}/${f.name}`;
+    const path = `${SHARED_FOLDER}/${f.name}`;
     const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(path);
     if (dlErr || !blob) continue;
     clips.push({
