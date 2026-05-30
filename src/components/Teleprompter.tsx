@@ -96,6 +96,7 @@ export function Teleprompter() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
   const [convertProgress, setConvertProgress] = useState<ConvertProgress>(null);
+  const [scriptRotation, setScriptRotation] = useState<0 | 90 | -90>(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
