@@ -1,8 +1,11 @@
-// Server-backed clip bank. Clips are stored in Supabase Storage under
-// `<userId>/prompter-clips/`. Duration and display name are encoded in the
-// filename so we don't need an extra DB table:
+// Server-backed clip bank, SHARED across all signed-in users. Clips are
+// stored in Supabase Storage under `_shared/prompter-clips/`. Duration and
+// display name are encoded in the filename so we don't need an extra DB
+// table:
 //   `${createdAtMs}__${durationSec}s__${safeName}.${ext}`
 import { supabase } from "@/integrations/supabase/client";
+
+const SHARED_FOLDER = "_shared/prompter-clips";
 
 export type SavedClip = {
   id: string; // storage path
