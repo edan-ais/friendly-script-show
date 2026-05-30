@@ -586,7 +586,7 @@ export function Teleprompter() {
         </div>
       )}
 
-      {/* Floating zoom controls */}
+      {/* Floating zoom + rotate controls */}
       {(previewing || recording) && (
         <div className="absolute top-1/2 right-4 -translate-y-1/2 z-30 flex flex-col gap-2">
           <Button
@@ -609,6 +609,18 @@ export function Teleprompter() {
             aria-label="Zoom out"
           >
             −
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="rounded-full size-11 shadow-xl mt-2"
+            onClick={() =>
+              setScriptRotation((r) => (r === 0 ? 90 : r === 90 ? -90 : 0))
+            }
+            aria-label="Rotate script"
+            title="Rotate script"
+          >
+            <RotateCw className="size-4" />
           </Button>
         </div>
       )}
