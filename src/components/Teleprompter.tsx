@@ -627,7 +627,7 @@ export function Teleprompter() {
 
       {/* Bottom controls when previewing only */}
       {previewing && !recording && (
-        <div className="absolute bottom-8 inset-x-0 z-30 flex items-center justify-center gap-2">
+        <div className="absolute inset-x-0 z-30 flex flex-wrap items-center justify-center gap-2 px-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button
             size="lg"
             variant="secondary"
@@ -650,7 +650,7 @@ export function Teleprompter() {
 
       {/* Bottom controls when recording */}
       {recording && (
-        <div className="absolute bottom-8 inset-x-0 z-30 flex items-center justify-center gap-2">
+        <div className="absolute inset-x-0 z-30 flex flex-wrap items-center justify-center gap-2 px-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button
             size="lg"
             variant="secondary"
@@ -680,7 +680,7 @@ export function Teleprompter() {
 
       {/* Bottom controls when neither (just landed, e.g. between preview/record) */}
       {!previewing && !recording && countdown === 0 && (
-        <div className="absolute bottom-8 inset-x-0 z-30 flex items-center justify-center gap-2">
+        <div className="absolute inset-x-0 z-30 flex flex-wrap items-center justify-center gap-2 px-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button size="lg" variant="secondary" onClick={reset} className="rounded-full shadow-2xl">
             <RotateCcw className="size-4" /> Reset
           </Button>
