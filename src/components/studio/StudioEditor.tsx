@@ -29,6 +29,7 @@ import {
 import {
   type Aspect,
   type MediaAsset,
+  type Project,
   type Selection,
   emptyProject,
   projectDuration,
@@ -36,6 +37,9 @@ import {
 } from "@/lib/studio/types";
 import { reducer } from "@/lib/studio/state";
 import { exportProjectToMp4 } from "@/lib/studio/export";
+import { useAuth, signOut } from "@/hooks/use-auth";
+import { loadOrCreateProject, saveProject } from "@/lib/persistence/projects";
+import { uploadMedia, signMedia } from "@/lib/persistence/media";
 
 import { ScriptImporter } from "./ScriptImporter";
 import { Timeline } from "./Timeline";
@@ -67,7 +71,11 @@ async function probeMedia(file: File, kind: "video" | "audio"): Promise<MediaAss
 }
 
 export function StudioEditor() {
+  const { user, ready } = useAuth();
   const [project, dispatch] = useReducer(reducer, undefined, emptyProject);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectLoaded, setProjectLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [selection, setSelection] = useState<Selection>(null);
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -75,8 +83,55 @@ export function StudioEditor() {
   const [progress, setProgress] = useState<{ msg: string; ratio: number } | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef<number>(0);
+  const saveTimerRef = useRef<number | null>(null);
 
   const duration = Math.max(projectDuration(project), 0.001);
+
+  // Load the project for this user, re-signing storage URLs for any saved assets.
+  useEffect(() => {
+    if (!user) return;
+    loadOrCreateProject(user.id)
+      .then(async (row) => {
+        const refreshed = { ...row.data } as Project;
+        refreshed.assets = await Promise.all(
+          (row.data.assets ?? []).map(async (a) => {
+            if (!a.storagePath) return a;
+            try {
+              const url = await signMedia(a.storagePath);
+              return { ...a, url };
+            } catch {
+              return a;
+            }
+          }),
+        );
+        setProjectId(row.id);
+        dispatch({ type: "set", project: refreshed });
+        setProjectLoaded(true);
+      })
+      .catch((e) => {
+        console.error(e);
+        toast.error("Couldn't load your project");
+        setProjectLoaded(true);
+      });
+  }, [user]);
+
+  // Debounced autosave whenever the project changes
+  useEffect(() => {
+    if (!projectId || !projectLoaded) return;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      setSaving(true);
+      saveProject(projectId, project)
+        .catch((e) => {
+          console.error(e);
+          toast.error("Project save failed");
+        })
+        .finally(() => setSaving(false));
+    }, 800);
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [project, projectId, projectLoaded]);
 
   // Playback loop
   useEffect(() => {
@@ -105,11 +160,18 @@ export function StudioEditor() {
   }, [playing, duration]);
 
   async function uploadFiles(files: FileList | null, kind: "video" | "audio") {
-    if (!files) return;
+    if (!files || !user) return;
     for (const f of Array.from(files)) {
-      const asset = await probeMedia(f, kind);
-      dispatch({ type: "add_asset", asset });
-      toast.success(`Loaded ${asset.name}`);
+      try {
+        const asset = await probeMedia(f, kind);
+        const storagePath = await uploadMedia(user.id, "studio-assets", f, f.name);
+        const signedUrl = await signMedia(storagePath);
+        dispatch({ type: "add_asset", asset: { ...asset, storagePath, url: signedUrl } });
+        toast.success(`Uploaded ${asset.name}`);
+      } catch (err) {
+        console.error(err);
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+      }
     }
   }
 
@@ -207,6 +269,15 @@ export function StudioEditor() {
   const videoAssets = project.assets.filter((a) => a.kind === "video");
   const audioAssets = project.assets.filter((a) => a.kind === "audio");
 
+  if (!ready || !user) return <div className="h-screen bg-[#08080f]" />;
+  if (!projectLoaded) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#08080f] text-white/60">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col bg-[#08080f] text-white">
       {/* Header */}
@@ -221,6 +292,7 @@ export function StudioEditor() {
             onChange={(e) => dispatch({ type: "rename", name: e.target.value })}
             className="h-8 w-56 border-transparent bg-transparent text-sm font-semibold focus-visible:border-white/20"
           />
+          <span className="text-xs text-white/40">{saving ? "Saving…" : "Saved"}</span>
         </div>
         <div className="flex items-center gap-3">
           <Select value={project.aspect} onValueChange={(v) => dispatch({ type: "set_aspect", aspect: v as Aspect })}>
@@ -236,8 +308,12 @@ export function StudioEditor() {
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             {exporting ? "Exporting..." : "Export MP4"}
           </Button>
+          <Button size="sm" variant="ghost" className="text-white/60" onClick={() => signOut()}>
+            Sign out
+          </Button>
         </div>
       </header>
+
 
       {progress && (
         <div className="border-b border-white/10 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-100">

@@ -31,6 +31,8 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { listClips, saveClip, deleteClip, type SavedClip } from "@/lib/video-bank";
 import { videoToMp4, webmToMp4 } from "@/lib/convert";
+import { useAuth, signOut } from "@/hooks/use-auth";
+import { loadOrCreateScript, saveScript } from "@/lib/persistence/scripts";
 
 const SAMPLE = `Welcome to Prompter.
 
@@ -77,8 +79,12 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function Teleprompter() {
+  const { user, ready } = useAuth();
   const [mode, setMode] = useState<Mode>("setup");
-  const [text, setText] = useState(SAMPLE);
+  const [text, setText] = useState("");
+  const [scriptId, setScriptId] = useState<string | null>(null);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(60);
   const [fontSize, setFontSize] = useState(56);
@@ -106,13 +112,45 @@ export function Teleprompter() {
   const rafRef = useRef<number | null>(null);
   const lastTsRef = useRef<number | null>(null);
   const recStartRef = useRef<number>(0);
+  const saveTimerRef = useRef<number | null>(null);
 
-  // Load saved clips on mount
+  // Load script + clips once the user is known
   useEffect(() => {
+    if (!user) return;
+    loadOrCreateScript(user.id)
+      .then((row) => {
+        setScriptId(row.id);
+        setText(row.content || SAMPLE);
+        setScriptLoaded(true);
+      })
+      .catch((e) => {
+        console.error(e);
+        toast.error("Couldn't load your script");
+        setText(SAMPLE);
+        setScriptLoaded(true);
+      });
     listClips()
       .then(setClips)
-      .catch(() => {});
-  }, []);
+      .catch((e) => console.error("listClips failed", e));
+  }, [user]);
+
+  // Debounced autosave of script text
+  useEffect(() => {
+    if (!scriptId || !scriptLoaded) return;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      setSaving(true);
+      saveScript(scriptId, { content: text })
+        .catch((e) => {
+          console.error(e);
+          toast.error("Save failed");
+        })
+        .finally(() => setSaving(false));
+    }, 600);
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [text, scriptId, scriptLoaded]);
 
   // Webcam — only when on stage
   useEffect(() => {
@@ -348,6 +386,20 @@ export function Teleprompter() {
     }
   };
 
+  // Wait for auth to resolve so we don't redirect prematurely
+  if (!ready) return <div className="min-h-screen bg-background" />;
+  if (!user) return <div className="min-h-screen bg-background" />;
+
+  // Don't render until the saved script content has been pulled from the server,
+  // otherwise the empty default would overwrite real saved content via autosave.
+  if (!scriptLoaded && mode === "setup") {
+    return (
+      <div className="min-h-screen w-full bg-background text-foreground flex items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   // -------------- SETUP SCREEN --------------
   if (mode === "setup") {
     return (
@@ -363,6 +415,9 @@ export function Teleprompter() {
               P
             </div>
             <h1 className="text-xl font-bold">Prompter</h1>
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {saving ? "Saving…" : "Saved"}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => setConverterOpen(true)}>
@@ -372,8 +427,12 @@ export function Teleprompter() {
               <Library className="size-4" /> <span className="hidden sm:inline">Bank</span>
               <span className="text-xs text-muted-foreground">({clips.length})</span>
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => signOut()}>
+              <span className="hidden sm:inline">Sign out</span>
+            </Button>
           </div>
         </header>
+
 
         <main className="max-w-2xl mx-auto p-4 sm:p-6 flex flex-col gap-6 pb-32">
           <section className="flex flex-col gap-2">

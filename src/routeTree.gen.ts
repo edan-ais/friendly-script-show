@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as PrompterRouteImport } from './routes/prompter'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as DocumentRouteImport } from './routes/document'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const StudioRoute = StudioRouteImport.update({
 const PrompterRoute = PrompterRouteImport.update({
   id: '/prompter',
   path: '/prompter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentRoute = DocumentRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/document': typeof DocumentRoute
+  '/login': typeof LoginRoute
   '/prompter': typeof PrompterRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/document': typeof DocumentRoute
+  '/login': typeof LoginRoute
   '/prompter': typeof PrompterRoute
   '/studio': typeof StudioRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/document': typeof DocumentRoute
+  '/login': typeof LoginRoute
   '/prompter': typeof PrompterRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/document' | '/prompter' | '/studio'
+  fullPaths: '/' | '/document' | '/login' | '/prompter' | '/studio'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/document' | '/prompter' | '/studio'
-  id: '__root__' | '/' | '/document' | '/prompter' | '/studio'
+  to: '/' | '/document' | '/login' | '/prompter' | '/studio'
+  id: '__root__' | '/' | '/document' | '/login' | '/prompter' | '/studio'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DocumentRoute: typeof DocumentRoute
+  LoginRoute: typeof LoginRoute
   PrompterRoute: typeof PrompterRoute
   StudioRoute: typeof StudioRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/prompter'
       fullPath: '/prompter'
       preLoaderRoute: typeof PrompterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/document': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DocumentRoute: DocumentRoute,
+  LoginRoute: LoginRoute,
   PrompterRoute: PrompterRoute,
   StudioRoute: StudioRoute,
 }

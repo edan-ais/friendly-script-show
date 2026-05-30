@@ -1,7 +1,11 @@
-import { get, set, del, keys } from "idb-keyval";
+// Server-backed clip bank. Clips are stored in Supabase Storage under
+// `<userId>/prompter-clips/`. Duration and display name are encoded in the
+// filename so we don't need an extra DB table:
+//   `${createdAtMs}__${durationSec}s__${safeName}.${ext}`
+import { supabase } from "@/integrations/supabase/client";
 
 export type SavedClip = {
-  id: string;
+  id: string; // storage path
   createdAt: number;
   durationSec: number;
   blob: Blob;
@@ -9,26 +13,78 @@ export type SavedClip = {
   name: string;
 };
 
-const PREFIX = "clip:";
+const BUCKET = "media";
 
-export async function saveClip(clip: Omit<SavedClip, "id" | "createdAt"> & { id?: string; createdAt?: number }): Promise<SavedClip> {
-  const id = clip.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const createdAt = clip.createdAt ?? Date.now();
-  const full: SavedClip = { ...clip, id, createdAt };
-  await set(PREFIX + id, full);
-  return full;
+function safeFile(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80);
+}
+
+function parseFilename(filename: string): { createdAt: number; durationSec: number; name: string; ext: "webm" | "mp4" } | null {
+  const m = filename.match(/^(\d+)__(\d+)s__(.+)\.(webm|mp4)$/);
+  if (!m) return null;
+  return {
+    createdAt: Number(m[1]),
+    durationSec: Number(m[2]),
+    name: m[3].replace(/_/g, " "),
+    ext: m[4] as "webm" | "mp4",
+  };
+}
+
+async function currentUserId(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error("Not signed in");
+  return data.user.id;
+}
+
+export async function saveClip(input: {
+  blob: Blob;
+  ext: "webm" | "mp4";
+  durationSec: number;
+  name: string;
+}): Promise<SavedClip> {
+  const userId = await currentUserId();
+  const createdAt = Date.now();
+  const filename = `${createdAt}__${Math.max(0, Math.floor(input.durationSec))}s__${safeFile(input.name)}.${input.ext}`;
+  const path = `${userId}/prompter-clips/${filename}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, input.blob, {
+    contentType: input.blob.type || (input.ext === "mp4" ? "video/mp4" : "video/webm"),
+    upsert: false,
+  });
+  if (error) throw error;
+  return { id: path, createdAt, durationSec: input.durationSec, blob: input.blob, ext: input.ext, name: input.name };
 }
 
 export async function listClips(): Promise<SavedClip[]> {
-  const allKeys = (await keys()).filter((k): k is string => typeof k === "string" && k.startsWith(PREFIX));
-  const items = await Promise.all(allKeys.map((k) => get<SavedClip>(k)));
-  return items.filter((x): x is SavedClip => !!x).sort((a, b) => b.createdAt - a.createdAt);
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return [];
+  const folder = `${userData.user.id}/prompter-clips`;
+  const { data: files, error } = await supabase.storage.from(BUCKET).list(folder, {
+    limit: 200,
+    sortBy: { column: "name", order: "desc" },
+  });
+  if (error) throw error;
+  if (!files) return [];
+  const clips: SavedClip[] = [];
+  for (const f of files) {
+    if (!f.name || f.name === ".emptyFolderPlaceholder") continue;
+    const meta = parseFilename(f.name);
+    if (!meta) continue;
+    const path = `${folder}/${f.name}`;
+    const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(path);
+    if (dlErr || !blob) continue;
+    clips.push({
+      id: path,
+      createdAt: meta.createdAt,
+      durationSec: meta.durationSec,
+      ext: meta.ext,
+      name: meta.name,
+      blob,
+    });
+  }
+  return clips.sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export async function deleteClip(id: string): Promise<void> {
-  await del(PREFIX + id);
-}
-
-export async function updateClip(clip: SavedClip): Promise<void> {
-  await set(PREFIX + clip.id, clip);
+  const { error } = await supabase.storage.from(BUCKET).remove([id]);
+  if (error) throw error;
 }
