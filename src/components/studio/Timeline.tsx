@@ -69,8 +69,8 @@ export function Timeline(props: Props) {
         )}
       </div>
 
-      <div className="relative flex-1 overflow-auto" ref={scrollerRef}>
-        <div style={{ width: duration * pxPerSec + 200 }} className="relative">
+      <div className="relative flex-1 overflow-x-auto overflow-y-auto" ref={scrollerRef}>
+        <div style={{ width: duration * pxPerSec + 200 }} className="relative min-w-full">
           {/* Ruler */}
           <div
             className="sticky top-0 z-10 h-6 cursor-pointer border-b border-white/10 bg-[#0c0c14]"
@@ -88,7 +88,7 @@ export function Timeline(props: Props) {
 
           {/* Tracks */}
           {trackList.map((t) => (
-            <div key={t.key} className="relative h-14 border-b border-white/5">
+            <div key={t.key} className="relative h-14 min-w-full border-b border-white/5">
               <div className="sticky left-0 z-10 inline-block w-20 -translate-x-0 bg-[#0c0c14]/95 px-2 py-1 text-[11px] uppercase tracking-wide text-white/50">
                 {t.label}
               </div>
