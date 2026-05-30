@@ -154,14 +154,11 @@ export function Timeline(props: Props) {
         )}
       </div>
 
-      <div
-        className="relative flex-1 overflow-x-scroll overflow-y-auto [scrollbar-color:rgba(255,255,255,0.35)_rgba(255,255,255,0.08)] [scrollbar-gutter:stable]"
-        ref={scrollerRef}
-      >
+      <div className="relative flex-1 min-h-0">
         <Button
           size="icon"
           variant="ghost"
-          className="sticky left-2 top-1/2 z-30 h-10 w-10 -translate-y-1/2 border border-white/25 bg-black/70 text-white shadow-lg backdrop-blur hover:bg-black/90 hover:text-white"
+          className="absolute left-2 top-1/2 z-30 h-10 w-10 -translate-y-1/2 border border-white/25 bg-black/70 text-white shadow-lg backdrop-blur hover:bg-black/90 hover:text-white"
           onClick={() => scrollByAmount(-1)}
           title="Scroll timeline left"
         >
@@ -170,12 +167,16 @@ export function Timeline(props: Props) {
         <Button
           size="icon"
           variant="ghost"
-          className="sticky left-[calc(100%-3rem)] top-1/2 z-30 h-10 w-10 -translate-y-1/2 border border-white/25 bg-black/70 text-white shadow-lg backdrop-blur hover:bg-black/90 hover:text-white"
+          className="absolute right-4 top-1/2 z-30 h-10 w-10 -translate-y-1/2 border border-white/25 bg-black/70 text-white shadow-lg backdrop-blur hover:bg-black/90 hover:text-white"
           onClick={() => scrollByAmount(1)}
           title="Scroll timeline right"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
+        <div
+          className="h-full overflow-x-scroll overflow-y-auto [scrollbar-color:rgba(255,255,255,0.35)_rgba(255,255,255,0.08)] [scrollbar-gutter:stable]"
+          ref={scrollerRef}
+        >
         <div style={{ width: timelineWidth }} className="relative min-w-full pb-4">
           {/* Ruler */}
           <div
@@ -239,6 +240,7 @@ export function Timeline(props: Props) {
               ))}
             </div>
           ))}
+        </div>
         </div>
       </div>
     </div>
