@@ -20,6 +20,7 @@ import {
   FileVideo,
   Loader2,
   X,
+  RotateCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -95,6 +96,7 @@ export function Teleprompter() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
   const [convertProgress, setConvertProgress] = useState<ConvertProgress>(null);
+  const [scriptRotation, setScriptRotation] = useState<0 | 90 | -90>(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -509,7 +511,22 @@ export function Teleprompter() {
 
       {!previewing && (
         <div className="absolute inset-0 flex justify-center pointer-events-none">
-          <div className="relative h-full w-full max-w-3xl">
+          <div
+            className="relative max-w-3xl"
+            style={
+              scriptRotation === 0
+                ? { height: "100%", width: "100%" }
+                : {
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    width: "100vh",
+                    height: "100vw",
+                    maxWidth: "none",
+                    transform: `translate(-50%, -50%) rotate(${scriptRotation}deg)`,
+                  }
+            }
+          >
             <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/80 to-transparent z-10 pointer-events-none" />
             <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none" />
             <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 border-t-2 border-primary/60 z-10 pointer-events-none" />
@@ -569,7 +586,7 @@ export function Teleprompter() {
         </div>
       )}
 
-      {/* Floating zoom controls */}
+      {/* Floating zoom + rotate controls */}
       {(previewing || recording) && (
         <div className="absolute top-1/2 right-4 -translate-y-1/2 z-30 flex flex-col gap-2">
           <Button
@@ -592,6 +609,18 @@ export function Teleprompter() {
             aria-label="Zoom out"
           >
             −
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="rounded-full size-11 shadow-xl mt-2"
+            onClick={() =>
+              setScriptRotation((r) => (r === 0 ? 90 : r === 90 ? -90 : 0))
+            }
+            aria-label="Rotate script"
+            title="Rotate script"
+          >
+            <RotateCw className="size-4" />
           </Button>
         </div>
       )}
