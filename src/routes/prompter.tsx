@@ -7,6 +7,7 @@ export const Route = createFileRoute("/prompter")({
     meta: [
       { title: "Prompter — Hackathon Prep" },
       { name: "description", content: "Paste your script, scroll it on screen, and record yourself in one place." },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
