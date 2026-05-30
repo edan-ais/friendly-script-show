@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ASPECT_DIMS, type Project, type VideoClip } from "@/lib/studio/types";
 
 type Props = {
@@ -16,10 +16,34 @@ function activeVideo(project: Project, t: number): VideoClip | null {
 }
 
 export function PreviewCanvas({ project, playhead, playing }: Props) {
+  const frameRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videosRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const audiosRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const [mediaVersion, setMediaVersion] = useState(0);
+  const [displaySize, setDisplaySize] = useState<{ width: number; height: number } | null>(null);
   const { w, h } = ASPECT_DIMS[project.aspect];
+
+  // Size the displayed canvas explicitly so portrait formats fit inside the preview pane.
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    const updateSize = () => {
+      const bounds = frame.getBoundingClientRect();
+      const scale = Math.min(bounds.width / w, bounds.height / h);
+      if (!Number.isFinite(scale) || scale <= 0) return;
+      setDisplaySize({
+        width: Math.floor(w * scale),
+        height: Math.floor(h * scale),
+      });
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [w, h]);
 
   // Ensure media elements exist for each asset
   useEffect(() => {
@@ -37,6 +61,10 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
           el.muted = true;
           el.playsInline = true;
           el.preload = "auto";
+          el.addEventListener("loadeddata", () => setMediaVersion((n) => n + 1));
+          el.addEventListener("seeked", () => setMediaVersion((n) => n + 1));
+          el.addEventListener("canplay", () => setMediaVersion((n) => n + 1));
+          el.load();
           vmap.set(a.id, el);
         }
       } else {
@@ -95,7 +123,11 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
           const baseY = (h - drawH) / 2;
           const offX = ((drawW - w) / 2) * clip.panX;
           const offY = ((drawH - h) / 2) * clip.panY;
-          ctx.drawImage(v, baseX - offX, baseY - offY, drawW, drawH);
+          if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            ctx.drawImage(v, baseX - offX, baseY - offY, drawW, drawH);
+          } else {
+            v.load();
+          }
         } catch {
           /* not yet decoded */
         }
@@ -112,7 +144,10 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
       if (playhead < s.start || playhead >= s.start + s.duration) continue;
       drawTextBox(ctx, s.text, "bottom", 48, "#fff", "#000", 0.55, w, h);
     }
-  }, [project, playhead, playing, w, h]);
+    if (project.subtitles.length === 0 && clip?.sourceLine) {
+      drawTextBox(ctx, clip.sourceLine, "bottom", 48, "#fff", "#000", 0.55, w, h);
+    }
+  }, [project, playhead, playing, w, h, mediaVersion]);
 
   // Drive playback of media elements when playing
   useEffect(() => {
@@ -157,10 +192,19 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
   }, [playing, playhead, project]);
 
   return (
-    <div className="flex h-full w-full items-center justify-center overflow-hidden bg-black p-2">
+    <div
+      ref={frameRef}
+      className="flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden bg-black p-3"
+    >
       <canvas
         ref={canvasRef}
-        className="h-full w-full object-contain"
+        width={w}
+        height={h}
+        className="block bg-black"
+        style={{
+          width: displaySize ? `${displaySize.width}px` : "100%",
+          height: displaySize ? `${displaySize.height}px` : "100%",
+        }}
       />
     </div>
   );
@@ -188,11 +232,7 @@ function drawTextBox(
   const boxH = fs + padY * 2;
   const x = w / 2 - boxW / 2;
   const y =
-    position === "top"
-      ? h * 0.08
-      : position === "bottom"
-        ? h - h * 0.08 - boxH
-        : h / 2 - boxH / 2;
+    position === "top" ? h * 0.08 : position === "bottom" ? h - h * 0.08 - boxH : h / 2 - boxH / 2;
   ctx.globalAlpha = boxOpacity;
   ctx.fillStyle = boxColor;
   ctx.fillRect(x, y, boxW, boxH);
