@@ -273,7 +273,14 @@ export function Teleprompter() {
       setClips((prev) => [saved, ...prev]);
       toast.success("Saved to your video bank");
     };
-    rec.start();
+    rec.onerror = (e) => {
+      console.error("MediaRecorder error", e);
+      toast.error("Recording error — try again");
+    };
+    // Timeslice: flush a chunk every second so we get a well-formed cluster
+    // stream instead of one giant blob at stop. This dramatically improves
+    // playback reliability for longer (15s+) WebM recordings.
+    rec.start(1000);
     recorderRef.current = rec;
     recStartRef.current = Date.now();
     setElapsed(0);
@@ -871,14 +878,53 @@ function BankCard({
   progress: ConvertProgress;
 }) {
   const [url, setUrl] = useState<string>("");
+  const videoElRef = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
     const u = URL.createObjectURL(clip.blob);
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [clip.blob]);
+
+  // WebM blobs produced by MediaRecorder have no duration metadata in the
+  // container header, so Chromium/Firefox report duration as Infinity and
+  // playback freezes part-way through (often around the first cluster, ~15s).
+  // The fix is to force the browser to scan the whole file by seeking to a
+  // huge timestamp, then reset to 0 once it reports a real duration. This
+  // makes the file fully seekable and prevents the freeze.
+  const handleLoadedMetadata = useCallback(() => {
+    const v = videoElRef.current;
+    if (!v) return;
+    if (v.duration === Infinity || Number.isNaN(v.duration)) {
+      const onSeeked = () => {
+        v.removeEventListener("seeked", onSeeked);
+        try {
+          v.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
+      };
+      v.addEventListener("seeked", onSeeked);
+      try {
+        v.currentTime = 1e9;
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
+
   return (
     <div className="rounded-lg border border-border p-3 flex flex-col gap-2 bg-background">
-      {url && <video src={url} controls className="w-full rounded-md aspect-video bg-black" />}
+      {url && (
+        <video
+          ref={videoElRef}
+          src={url}
+          controls
+          preload="metadata"
+          playsInline
+          onLoadedMetadata={handleLoadedMetadata}
+          className="w-full rounded-md aspect-video bg-black"
+        />
+      )}
       <div className="text-xs text-muted-foreground">
         {new Date(clip.createdAt).toLocaleString()} · {clip.durationSec}s · {clip.ext.toUpperCase()}
       </div>
