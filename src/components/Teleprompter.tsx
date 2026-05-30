@@ -351,7 +351,7 @@ export function Teleprompter() {
   // -------------- SETUP SCREEN --------------
   if (mode === "setup") {
     return (
-      <div className="min-h-screen w-full bg-background text-foreground">
+      <div className="min-h-screen w-full bg-background text-foreground" style={{ touchAction: "manipulation" }}>
       <header className="border-b border-border bg-card/40 backdrop-blur px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" asChild className="-ml-2">
