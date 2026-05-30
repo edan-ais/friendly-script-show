@@ -386,8 +386,8 @@ export function StudioEditor() {
         </aside>
 
         {/* Center: preview + timeline */}
-        <div className="grid grid-rows-[1fr_300px] overflow-hidden">
-          <div className="relative overflow-hidden bg-black">
+        <div className="grid min-h-0 grid-rows-[minmax(260px,1fr)_320px] overflow-hidden">
+          <div className="relative min-h-0 overflow-hidden bg-black">
             <PreviewCanvas project={project} playhead={playhead} playing={playing} />
             <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur">
               <Button size="icon" variant="ghost" className="h-8 w-8 text-white" onClick={() => setPlaying((p) => !p)}>
@@ -411,7 +411,7 @@ export function StudioEditor() {
 
         {/* Right inspector */}
         <aside className="overflow-y-auto border-l border-white/10 bg-[#0a0a12]">
-          <Inspector project={project} selection={selection} dispatch={dispatch} />
+          <Inspector project={project} selection={selection} dispatch={dispatch} setPlayhead={setPlayhead} />
         </aside>
       </div>
     </div>
