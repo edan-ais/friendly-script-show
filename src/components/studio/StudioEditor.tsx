@@ -247,7 +247,9 @@ export function StudioEditor() {
     setExporting(true);
     setProgress({ msg: "Starting...", ratio: 0 });
     try {
-      const blob = await exportProjectToMp4(project, (msg, ratio = 0) => setProgress({ msg, ratio }));
+      const blob = await exportProjectToMp4(project, (msg, ratio = 0) =>
+        setProgress({ msg, ratio }),
+      );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -284,7 +286,9 @@ export function StudioEditor() {
       <header className="flex items-center justify-between border-b border-white/10 bg-[#0c0c14] px-4 py-2">
         <div className="flex items-center gap-3">
           <Button asChild size="sm" variant="ghost" className="text-white/70">
-            <Link to="/"><ArrowLeft className="mr-1 h-4 w-4" /> Home</Link>
+            <Link to="/">
+              <ArrowLeft className="mr-1 h-4 w-4" /> Home
+            </Link>
           </Button>
           <div className="h-6 w-px bg-white/10" />
           <Input
@@ -295,7 +299,10 @@ export function StudioEditor() {
           <span className="text-xs text-white/40">{saving ? "Saving…" : "Saved"}</span>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={project.aspect} onValueChange={(v) => dispatch({ type: "set_aspect", aspect: v as Aspect })}>
+          <Select
+            value={project.aspect}
+            onValueChange={(v) => dispatch({ type: "set_aspect", aspect: v as Aspect })}
+          >
             <SelectTrigger className="h-8 w-36 bg-white/5 text-xs">
               <SelectValue />
             </SelectTrigger>
@@ -305,7 +312,11 @@ export function StudioEditor() {
             </SelectContent>
           </Select>
           <Button onClick={handleExport} disabled={exporting} className="gap-2">
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {exporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
             {exporting ? "Exporting..." : "Export MP4"}
           </Button>
           <Button size="sm" variant="ghost" className="text-white/60" onClick={() => signOut()}>
@@ -314,12 +325,14 @@ export function StudioEditor() {
         </div>
       </header>
 
-
       {progress && (
         <div className="border-b border-white/10 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-100">
           {progress.msg}
           <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-white/10">
-            <div className="h-full bg-amber-300 transition-all" style={{ width: `${Math.round(progress.ratio * 100)}%` }} />
+            <div
+              className="h-full bg-amber-300 transition-all"
+              style={{ width: `${Math.round(progress.ratio * 100)}%` }}
+            />
           </div>
         </div>
       )}
@@ -351,19 +364,47 @@ export function StudioEditor() {
                 <div className="text-xs uppercase tracking-wide text-white/40">Video assets</div>
                 {videoAssets.length === 0 && <div className="text-xs text-white/30">None</div>}
                 {videoAssets.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between rounded-md bg-white/5 px-2 py-1.5 text-xs">
-                    <span className="truncate"><Video className="mr-1 inline h-3 w-3" />{a.name}</span>
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between rounded-md bg-white/5 px-2 py-1.5 text-xs"
+                  >
+                    <span className="truncate">
+                      <Video className="mr-1 inline h-3 w-3" />
+                      {a.name}
+                    </span>
                     <span className="text-white/40">{a.duration.toFixed(1)}s</span>
                   </div>
                 ))}
-                <div className="mt-4 text-xs uppercase tracking-wide text-white/40">Audio assets</div>
+                <div className="mt-4 text-xs uppercase tracking-wide text-white/40">
+                  Audio assets
+                </div>
                 {audioAssets.length === 0 && <div className="text-xs text-white/30">None</div>}
                 {audioAssets.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between rounded-md bg-white/5 px-2 py-1.5 text-xs">
-                    <span className="truncate"><Music className="mr-1 inline h-3 w-3" />{a.name}</span>
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between rounded-md bg-white/5 px-2 py-1.5 text-xs"
+                  >
+                    <span className="truncate">
+                      <Music className="mr-1 inline h-3 w-3" />
+                      {a.name}
+                    </span>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" onClick={() => addAudioFromAsset(a.id, "voice")}>+ Voice</Button>
-                      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" onClick={() => addAudioFromAsset(a.id, "music")}>+ Music</Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-1.5 text-[10px]"
+                        onClick={() => addAudioFromAsset(a.id, "voice")}
+                      >
+                        + Voice
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-1.5 text-[10px]"
+                        onClick={() => addAudioFromAsset(a.id, "music")}
+                      >
+                        + Music
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -371,10 +412,18 @@ export function StudioEditor() {
             </TabsContent>
 
             <TabsContent value="add" className="space-y-2 p-4">
-              <Button variant="secondary" className="w-full justify-start gap-2" onClick={addBlankVideoClip}>
+              <Button
+                variant="secondary"
+                className="w-full justify-start gap-2"
+                onClick={addBlankVideoClip}
+              >
                 <Plus className="h-4 w-4" /> Add blank video segment
               </Button>
-              <Button variant="secondary" className="w-full justify-start gap-2" onClick={addOverlay}>
+              <Button
+                variant="secondary"
+                className="w-full justify-start gap-2"
+                onClick={addOverlay}
+              >
                 <Type className="h-4 w-4" /> Add text overlay
               </Button>
               <div className="pt-3 text-xs text-white/40">
@@ -390,13 +439,25 @@ export function StudioEditor() {
           <div className="relative min-h-0 overflow-hidden bg-black">
             <PreviewCanvas project={project} playhead={playhead} playing={playing} />
             <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur">
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-white" onClick={() => setPlaying((p) => !p)}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-white"
+                onClick={() => setPlaying((p) => !p)}
+              >
                 {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               </Button>
               <span className="font-mono text-xs text-white/70">
                 {playhead.toFixed(2)}s / {duration.toFixed(2)}s
               </span>
-              <Button size="sm" variant="ghost" className="h-8 text-xs text-white/70" onClick={() => setPlayhead(0)}>Reset</Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-white/70"
+                onClick={() => setPlayhead(0)}
+              >
+                Reset
+              </Button>
             </div>
           </div>
           <Timeline
@@ -411,20 +472,41 @@ export function StudioEditor() {
 
         {/* Right inspector */}
         <aside className="overflow-y-auto border-l border-white/10 bg-[#0a0a12]">
-          <Inspector project={project} selection={selection} dispatch={dispatch} setPlayhead={setPlayhead} />
+          <Inspector
+            project={project}
+            selection={selection}
+            dispatch={dispatch}
+            setPlayhead={setPlayhead}
+          />
         </aside>
       </div>
     </div>
   );
 }
 
-function UploadButton({ kind, onChange }: { kind: "video" | "audio"; onChange: (files: FileList | null) => void }) {
+function UploadButton({
+  kind,
+  onChange,
+}: {
+  kind: "video" | "audio";
+  onChange: (files: FileList | null) => void;
+}) {
   const id = `upload-${kind}`;
   return (
-    <label htmlFor={id} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/20 bg-white/5 px-3 py-3 text-xs text-white/70 hover:bg-white/10">
+    <label
+      htmlFor={id}
+      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/20 bg-white/5 px-3 py-3 text-xs text-white/70 hover:bg-white/10"
+    >
       <Upload className="h-4 w-4" />
       Upload {kind}
-      <input id={id} type="file" accept={kind === "video" ? "video/*" : "audio/*"} multiple className="hidden" onChange={(e) => onChange(e.target.files)} />
+      <input
+        id={id}
+        type="file"
+        accept={kind === "video" ? "video/*" : "audio/*"}
+        multiple
+        className="hidden"
+        onChange={(e) => onChange(e.target.files)}
+      />
     </label>
   );
 }
