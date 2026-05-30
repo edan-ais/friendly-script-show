@@ -192,20 +192,24 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
   }, [playing, playhead, project]);
 
   return (
-    <div
-      ref={frameRef}
-      className="flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden bg-black p-3"
-    >
-      <canvas
-        ref={canvasRef}
-        width={w}
-        height={h}
-        className="block bg-black"
-        style={{
-          width: displaySize ? `${displaySize.width}px` : "100%",
-          height: displaySize ? `${displaySize.height}px` : "100%",
-        }}
-      />
+    <div className="flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden bg-black p-3">
+      <div
+        ref={frameRef}
+        className="flex h-full min-h-0 w-full min-w-0 items-center justify-center"
+      >
+        <canvas
+          ref={canvasRef}
+          width={w}
+          height={h}
+          className="block bg-black"
+          style={{
+            width: displaySize ? `${displaySize.width}px` : undefined,
+            height: displaySize ? `${displaySize.height}px` : undefined,
+            maxWidth: "100%",
+            maxHeight: "100%",
+          }}
+        />
+      </div>
     </div>
   );
 }
