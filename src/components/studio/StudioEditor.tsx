@@ -71,7 +71,11 @@ async function probeMedia(file: File, kind: "video" | "audio"): Promise<MediaAss
 }
 
 export function StudioEditor() {
+  const { user, ready } = useAuth();
   const [project, dispatch] = useReducer(reducer, undefined, emptyProject);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectLoaded, setProjectLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [selection, setSelection] = useState<Selection>(null);
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -79,8 +83,55 @@ export function StudioEditor() {
   const [progress, setProgress] = useState<{ msg: string; ratio: number } | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef<number>(0);
+  const saveTimerRef = useRef<number | null>(null);
 
   const duration = Math.max(projectDuration(project), 0.001);
+
+  // Load the project for this user, re-signing storage URLs for any saved assets.
+  useEffect(() => {
+    if (!user) return;
+    loadOrCreateProject(user.id)
+      .then(async (row) => {
+        const refreshed = { ...row.data } as Project;
+        refreshed.assets = await Promise.all(
+          (row.data.assets ?? []).map(async (a) => {
+            if (!a.storagePath) return a;
+            try {
+              const url = await signMedia(a.storagePath);
+              return { ...a, url };
+            } catch {
+              return a;
+            }
+          }),
+        );
+        setProjectId(row.id);
+        dispatch({ type: "set", project: refreshed });
+        setProjectLoaded(true);
+      })
+      .catch((e) => {
+        console.error(e);
+        toast.error("Couldn't load your project");
+        setProjectLoaded(true);
+      });
+  }, [user]);
+
+  // Debounced autosave whenever the project changes
+  useEffect(() => {
+    if (!projectId || !projectLoaded) return;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      setSaving(true);
+      saveProject(projectId, project)
+        .catch((e) => {
+          console.error(e);
+          toast.error("Project save failed");
+        })
+        .finally(() => setSaving(false));
+    }, 800);
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [project, projectId, projectLoaded]);
 
   // Playback loop
   useEffect(() => {
@@ -109,11 +160,18 @@ export function StudioEditor() {
   }, [playing, duration]);
 
   async function uploadFiles(files: FileList | null, kind: "video" | "audio") {
-    if (!files) return;
+    if (!files || !user) return;
     for (const f of Array.from(files)) {
-      const asset = await probeMedia(f, kind);
-      dispatch({ type: "add_asset", asset });
-      toast.success(`Loaded ${asset.name}`);
+      try {
+        const asset = await probeMedia(f, kind);
+        const storagePath = await uploadMedia(user.id, "studio-assets", f, f.name);
+        const signedUrl = await signMedia(storagePath);
+        dispatch({ type: "add_asset", asset: { ...asset, storagePath, url: signedUrl } });
+        toast.success(`Uploaded ${asset.name}`);
+      } catch (err) {
+        console.error(err);
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+      }
     }
   }
 
