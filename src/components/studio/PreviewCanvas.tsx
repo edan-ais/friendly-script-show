@@ -195,8 +195,8 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
         <div
           className="relative overflow-hidden bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.12)]"
           style={{
-            width: displaySize ? `${displaySize.width}px` : undefined,
-            height: displaySize ? `${displaySize.height}px` : undefined,
+            width: displaySize ? `${displaySize.width}px` : "auto",
+            height: displaySize ? `${displaySize.height}px` : "100%",
             aspectRatio: `${w} / ${h}`,
             maxWidth: "100%",
             maxHeight: "100%",
