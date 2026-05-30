@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ASPECT_DIMS, type Project, type VideoClip } from "@/lib/studio/types";
 
 type Props = {
@@ -17,12 +17,17 @@ function activeVideo(project: Project, t: number): VideoClip | null {
 
 export function PreviewCanvas({ project, playhead, playing }: Props) {
   const frameRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const videosRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const audiosRef = useRef<Map<string, HTMLAudioElement>>(new Map());
-  const [mediaVersion, setMediaVersion] = useState(0);
   const [displaySize, setDisplaySize] = useState<{ width: number; height: number } | null>(null);
   const { w, h } = ASPECT_DIMS[project.aspect];
+  const clip = useMemo(() => activeVideo(project, playhead), [project, playhead]);
+  const asset = clip?.assetId
+    ? project.assets.find((a) => a.id === clip.assetId && a.kind === "video") ?? null
+    : null;
+  const desiredVideoTime = clip && asset
+    ? clamp(clip.inPoint + Math.max(0, playhead - clip.start) * clip.speed, 0, Math.max(0, asset.duration - 0.03))
+    : 0;
 
   // Size the displayed canvas explicitly so portrait formats fit inside the preview pane.
   useEffect(() => {
@@ -45,29 +50,14 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
     return () => observer.disconnect();
   }, [w, h]);
 
-  // Ensure media elements exist for each asset
+  // Ensure audio elements exist for each asset. The active video is rendered as a real
+  // <video> element instead of being copied into a canvas, which avoids blank canvas
+  // frames while the browser is still decoding a selected source clip.
   useEffect(() => {
-    const vmap = videosRef.current;
     const amap = audiosRef.current;
-    const seenV = new Set<string>();
     const seenA = new Set<string>();
     for (const a of project.assets) {
-      if (a.kind === "video") {
-        seenV.add(a.id);
-        if (!vmap.has(a.id)) {
-          const el = document.createElement("video");
-          el.src = a.url;
-          el.crossOrigin = "anonymous";
-          el.muted = true;
-          el.playsInline = true;
-          el.preload = "auto";
-          el.addEventListener("loadeddata", () => setMediaVersion((n) => n + 1));
-          el.addEventListener("seeked", () => setMediaVersion((n) => n + 1));
-          el.addEventListener("canplay", () => setMediaVersion((n) => n + 1));
-          el.load();
-          vmap.set(a.id, el);
-        }
-      } else {
+      if (a.kind === "audio") {
         seenA.add(a.id);
         if (!amap.has(a.id)) {
           const el = document.createElement("audio");
@@ -77,102 +67,58 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
         }
       }
     }
-    // Drop removed
-    for (const id of [...vmap.keys()]) if (!seenV.has(id)) vmap.delete(id);
     for (const id of [...amap.keys()]) if (!seenA.has(id)) amap.delete(id);
   }, [project.assets]);
 
-  // Draw current frame whenever playhead/project changes
+  // Keep the visible source video synced to the editor playhead.
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    canvas.width = w;
-    canvas.height = h;
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, w, h);
+    const video = videoRef.current;
+    if (!video || !clip || !asset) return;
 
-    const clip = activeVideo(project, playhead);
-    if (clip && clip.assetId) {
-      const v = videosRef.current.get(clip.assetId);
-      const asset = project.assets.find((a) => a.id === clip.assetId);
-      if (v && asset) {
-        const local = playhead - clip.start;
-        const desired = clip.inPoint + local * clip.speed;
-        if (!playing && Math.abs(v.currentTime - desired) > 0.05) {
-          v.currentTime = Math.max(0, Math.min(desired, asset.duration - 0.01));
-        }
+    const syncTime = () => {
+      const mediaDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : asset.duration;
+      const target = clamp(desiredVideoTime, 0, Math.max(0, mediaDuration - 0.03));
+      const decodedTarget = target === 0 && mediaDuration > 0.05 ? 0.001 : target;
+      if (!playing || Math.abs(video.currentTime - decodedTarget) > 0.25 || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
         try {
-          // Draw with zoom/pan crop
-          const zoom = Math.max(1, clip.zoom);
-          const srcW = v.videoWidth || w;
-          const srcH = v.videoHeight || h;
-          // Fit-cover scale
-          const targetAspect = w / h;
-          const srcAspect = srcW / srcH;
-          let drawW: number, drawH: number;
-          if (srcAspect > targetAspect) {
-            drawH = h * zoom;
-            drawW = drawH * srcAspect;
-          } else {
-            drawW = w * zoom;
-            drawH = drawW / srcAspect;
-          }
-          const baseX = (w - drawW) / 2;
-          const baseY = (h - drawH) / 2;
-          const offX = ((drawW - w) / 2) * clip.panX;
-          const offY = ((drawH - h) / 2) * clip.panY;
-          if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-            ctx.drawImage(v, baseX - offX, baseY - offY, drawW, drawH);
-          } else {
-            v.load();
-          }
+          video.currentTime = decodedTarget;
         } catch {
-          /* not yet decoded */
+          // Some browsers reject seeks before metadata; loadedmetadata retries it.
         }
       }
+      video.playbackRate = clip.speed;
+    };
+
+    if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      syncTime();
+    } else {
+      video.addEventListener("loadedmetadata", syncTime, { once: true });
+      video.load();
     }
 
-    // Overlays
-    for (const o of project.overlays) {
-      if (playhead < o.start || playhead >= o.start + o.duration) continue;
-      drawTextBox(ctx, o.text, o.position, o.fontSize, o.textColor, o.boxColor, o.boxOpacity, w, h);
+    return () => video.removeEventListener("loadedmetadata", syncTime);
+  }, [asset, clip, desiredVideoTime, playing]);
+
+  // Play/pause the visible video element.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (!playing || !clip || !asset) {
+      video.pause();
+      return;
     }
-    // Subtitles
-    for (const s of project.subtitles) {
-      if (playhead < s.start || playhead >= s.start + s.duration) continue;
-      drawTextBox(ctx, s.text, "bottom", 48, "#fff", "#000", 0.55, w, h);
-    }
-    if (project.subtitles.length === 0 && clip?.sourceLine) {
-      drawTextBox(ctx, clip.sourceLine, "bottom", 48, "#fff", "#000", 0.55, w, h);
-    }
-  }, [project, playhead, playing, w, h, mediaVersion]);
+    video.playbackRate = clip.speed;
+    video.muted = true;
+    video.play().catch(() => {});
+  }, [asset, clip, playing]);
 
   // Drive playback of media elements when playing
   useEffect(() => {
-    const clip = activeVideo(project, playhead);
-    const videos = videosRef.current;
     const audios = audiosRef.current;
 
     if (!playing) {
-      videos.forEach((v) => v.pause());
       audios.forEach((a) => a.pause());
       return;
-    }
-
-    // Play active video at desired offset
-    videos.forEach((v) => v.pause());
-    if (clip && clip.assetId) {
-      const v = videos.get(clip.assetId);
-      if (v) {
-        const local = playhead - clip.start;
-        const desired = clip.inPoint + local * clip.speed;
-        if (Math.abs(v.currentTime - desired) > 0.2) v.currentTime = desired;
-        v.playbackRate = clip.speed;
-        v.muted = true;
-        v.play().catch(() => {});
-      }
     }
 
     // Voice + music: play any track active now
@@ -191,56 +137,133 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
     }
   }, [playing, playhead, project]);
 
+  const activeSubtitles = project.subtitles.filter((s) => playhead >= s.start && playhead < s.start + s.duration);
+  const textBoxes = [
+    ...project.overlays
+      .filter((o) => playhead >= o.start && playhead < o.start + o.duration)
+      .map((o) => ({
+        id: o.id,
+        text: o.text,
+        position: o.position,
+        fontSize: o.fontSize,
+        color: o.textColor,
+        boxColor: o.boxColor,
+        boxOpacity: o.boxOpacity,
+      })),
+    ...activeSubtitles.map((s) => ({
+      id: s.id,
+      text: s.text,
+      position: "bottom" as const,
+      fontSize: 48,
+      color: "#ffffff",
+      boxColor: "#000000",
+      boxOpacity: 0.55,
+    })),
+    ...(activeSubtitles.length === 0 && clip?.sourceLine
+      ? [{
+          id: `${clip.id}-source-line`,
+          text: clip.sourceLine,
+          position: "bottom" as const,
+          fontSize: 48,
+          color: "#ffffff",
+          boxColor: "#000000",
+          boxOpacity: 0.55,
+        }]
+      : []),
+  ];
+
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden bg-black p-3">
       <div
         ref={frameRef}
         className="flex h-full min-h-0 w-full min-w-0 items-center justify-center"
       >
-        <canvas
-          ref={canvasRef}
-          width={w}
-          height={h}
-          className="block bg-black"
+        <div
+          className="relative overflow-hidden bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.12)]"
           style={{
             width: displaySize ? `${displaySize.width}px` : undefined,
             height: displaySize ? `${displaySize.height}px` : undefined,
+            aspectRatio: `${w} / ${h}`,
             maxWidth: "100%",
             maxHeight: "100%",
           }}
-        />
+        >
+          {asset && clip ? (
+            <video
+              key={`${clip.id}-${asset.id}`}
+              ref={videoRef}
+              src={asset.url}
+              crossOrigin="anonymous"
+              muted
+              playsInline
+              preload="auto"
+              className="absolute inset-0 h-full w-full bg-black object-cover"
+              style={{
+                objectPosition: `${50 + clip.panX * 50}% ${50 + clip.panY * 50}%`,
+                transform: `scale(${Math.max(1, clip.zoom)})`,
+                transformOrigin: "center",
+              }}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-black px-6 text-center text-sm text-white/35">
+              No source clip selected
+            </div>
+          )}
+          {textBoxes.map((box) => (
+            <PreviewTextBox key={box.id} box={box} frameHeight={displaySize?.height ?? h} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function drawTextBox(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  position: "top" | "center" | "bottom",
-  fontSize: number,
-  color: string,
-  boxColor: string,
-  boxOpacity: number,
-  w: number,
-  h: number,
-) {
-  const fs = Math.max(20, Math.round(fontSize * (h / 1080)));
-  ctx.font = `600 ${fs}px Inter, system-ui, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const metrics = ctx.measureText(text);
-  const padX = fs * 0.5;
-  const padY = fs * 0.35;
-  const boxW = Math.min(w * 0.9, metrics.width + padX * 2);
-  const boxH = fs + padY * 2;
-  const x = w / 2 - boxW / 2;
-  const y =
-    position === "top" ? h * 0.08 : position === "bottom" ? h - h * 0.08 - boxH : h / 2 - boxH / 2;
-  ctx.globalAlpha = boxOpacity;
-  ctx.fillStyle = boxColor;
-  ctx.fillRect(x, y, boxW, boxH);
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = color;
-  ctx.fillText(text, w / 2, y + boxH / 2);
+type PreviewTextBoxConfig = {
+  text: string;
+  position: "top" | "center" | "bottom";
+  fontSize: number;
+  color: string;
+  boxColor: string;
+  boxOpacity: number;
+};
+
+function PreviewTextBox({ box, frameHeight }: { box: PreviewTextBoxConfig; frameHeight: number }) {
+  const fontSize = Math.max(12, Math.round((box.fontSize / 1080) * frameHeight));
+  const positionStyle =
+    box.position === "top"
+      ? { top: "8%", transform: "translateX(-50%)" }
+      : box.position === "bottom"
+        ? { bottom: "8%", transform: "translateX(-50%)" }
+        : { top: "50%", transform: "translate(-50%, -50%)" };
+
+  return (
+    <div
+      className="absolute left-1/2 max-w-[90%] text-center font-semibold leading-tight"
+      style={{
+        ...positionStyle,
+        color: box.color,
+        backgroundColor: colorWithAlpha(box.boxColor, box.boxOpacity),
+        fontSize,
+        padding: `${Math.round(fontSize * 0.35)}px ${Math.round(fontSize * 0.5)}px`,
+      }}
+    >
+      {box.text}
+    </div>
+  );
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function colorWithAlpha(color: string, alpha: number) {
+  if (!color.startsWith("#")) return color;
+  const hex = color.slice(1);
+  const normalized = hex.length === 3 ? hex.split("").map((x) => x + x).join("") : hex;
+  const int = Number.parseInt(normalized, 16);
+  if (!Number.isFinite(int)) return color;
+  const r = (int >> 16) & 255;
+  const g = (int >> 8) & 255;
+  const b = int & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
