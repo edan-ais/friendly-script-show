@@ -33,10 +33,9 @@ function parseFilename(filename: string): { createdAt: number; durationSec: numb
   };
 }
 
-async function currentUserId(): Promise<string> {
+async function requireSignedIn(): Promise<void> {
   const { data } = await supabase.auth.getUser();
   if (!data.user) throw new Error("Not signed in");
-  return data.user.id;
 }
 
 export async function saveClip(input: {
@@ -45,10 +44,10 @@ export async function saveClip(input: {
   durationSec: number;
   name: string;
 }): Promise<SavedClip> {
-  const userId = await currentUserId();
+  await requireSignedIn();
   const createdAt = Date.now();
   const filename = `${createdAt}__${Math.max(0, Math.floor(input.durationSec))}s__${safeFile(input.name)}.${input.ext}`;
-  const path = `${userId}/prompter-clips/${filename}`;
+  const path = `${SHARED_FOLDER}/${filename}`;
   const { error } = await supabase.storage.from(BUCKET).upload(path, input.blob, {
     contentType: input.blob.type || (input.ext === "mp4" ? "video/mp4" : "video/webm"),
     upsert: false,
@@ -60,9 +59,8 @@ export async function saveClip(input: {
 export async function listClips(): Promise<SavedClip[]> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return [];
-  const folder = `${userData.user.id}/prompter-clips`;
-  const { data: files, error } = await supabase.storage.from(BUCKET).list(folder, {
-    limit: 200,
+  const { data: files, error } = await supabase.storage.from(BUCKET).list(SHARED_FOLDER, {
+    limit: 500,
     sortBy: { column: "name", order: "desc" },
   });
   if (error) throw error;
