@@ -1,10 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { AnyClip, Project, Selection } from "@/lib/studio/types";
 import { projectDuration } from "@/lib/studio/types";
 import type { Action, TrackKey } from "@/lib/studio/state";
 import { Button } from "@/components/ui/button";
-import { Scissors, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Scissors, Trash2 } from "lucide-react";
 
 type Props = {
   project: Project;
@@ -22,6 +22,20 @@ export function Timeline(props: Props) {
   const [pxPerSec, setPxPerSec] = useState(PX_PER_SEC_DEFAULT);
   const duration = Math.max(projectDuration(project), 10);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const timelineWidth = Math.max(duration * pxPerSec + 240, 900);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const playheadX = playhead * pxPerSec;
+    const leftEdge = scroller.scrollLeft + 96;
+    const rightEdge = scroller.scrollLeft + scroller.clientWidth - 80;
+    if (playheadX < leftEdge) {
+      scroller.scrollTo({ left: Math.max(0, playheadX - 96), behavior: "smooth" });
+    } else if (playheadX > rightEdge) {
+      scroller.scrollTo({ left: playheadX - scroller.clientWidth + 160, behavior: "smooth" });
+    }
+  }, [playhead, pxPerSec]);
 
   const trackList: { key: TrackKey; label: string; clips: AnyClip[]; color: string }[] = [
     { key: "video", label: "Video", clips: project.video, color: "bg-rose-500/80 border-rose-300/70" },
@@ -33,14 +47,20 @@ export function Timeline(props: Props) {
 
   function onRulerClick(e: React.MouseEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left + (scrollerRef.current?.scrollLeft ?? 0);
+    const x = e.clientX - rect.left;
     setPlayhead(Math.max(0, x / pxPerSec));
+  }
+
+  function scrollByAmount(direction: -1 | 1) {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    scroller.scrollBy({ left: direction * Math.max(320, scroller.clientWidth * 0.75), behavior: "smooth" });
   }
 
   return (
     <div className="flex h-full flex-col border-t border-white/10 bg-[#0c0c14] text-white">
       <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2 text-xs">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <span className="text-white/60">Zoom</span>
           <input
             type="range"
@@ -51,6 +71,14 @@ export function Timeline(props: Props) {
             className="w-32"
           />
           <span className="text-white/40">{playhead.toFixed(2)}s / {duration.toFixed(2)}s</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-white/60" onClick={() => scrollByAmount(-1)} title="Scroll timeline left">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-white/60" onClick={() => scrollByAmount(1)} title="Scroll timeline right">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
         {selection && (
           <div className="flex items-center gap-1">
@@ -69,8 +97,8 @@ export function Timeline(props: Props) {
         )}
       </div>
 
-      <div className="relative flex-1 overflow-x-auto overflow-y-auto" ref={scrollerRef}>
-        <div style={{ width: duration * pxPerSec + 200 }} className="relative min-w-full">
+      <div className="relative flex-1 overflow-x-scroll overflow-y-auto [scrollbar-color:rgba(255,255,255,0.35)_rgba(255,255,255,0.08)] [scrollbar-gutter:stable]" ref={scrollerRef}>
+        <div style={{ width: timelineWidth }} className="relative min-w-full pb-4">
           {/* Ruler */}
           <div
             className="sticky top-0 z-10 h-6 cursor-pointer border-b border-white/10 bg-[#0c0c14]"
