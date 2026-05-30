@@ -23,11 +23,16 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
   const { w, h } = ASPECT_DIMS[project.aspect];
   const clip = useMemo(() => activeVideo(project, playhead), [project, playhead]);
   const asset = clip?.assetId
-    ? project.assets.find((a) => a.id === clip.assetId && a.kind === "video") ?? null
+    ? (project.assets.find((a) => a.id === clip.assetId && a.kind === "video") ?? null)
     : null;
-  const desiredVideoTime = clip && asset
-    ? clamp(clip.inPoint + Math.max(0, playhead - clip.start) * clip.speed, 0, Math.max(0, asset.duration - 0.03))
-    : 0;
+  const desiredVideoTime =
+    clip && asset
+      ? clamp(
+          clip.inPoint + Math.max(0, playhead - clip.start) * clip.speed,
+          0,
+          Math.max(0, asset.duration - 0.03),
+        )
+      : 0;
 
   // Size the displayed canvas explicitly so portrait formats fit inside the preview pane.
   useEffect(() => {
@@ -76,10 +81,15 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
     if (!video || !clip || !asset) return;
 
     const syncTime = () => {
-      const mediaDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : asset.duration;
+      const mediaDuration =
+        Number.isFinite(video.duration) && video.duration > 0 ? video.duration : asset.duration;
       const target = clamp(desiredVideoTime, 0, Math.max(0, mediaDuration - 0.03));
       const decodedTarget = target === 0 && mediaDuration > 0.05 ? 0.001 : target;
-      if (!playing || Math.abs(video.currentTime - decodedTarget) > 0.25 || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      if (
+        !playing ||
+        Math.abs(video.currentTime - decodedTarget) > 0.25 ||
+        video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
+      ) {
         try {
           video.currentTime = decodedTarget;
         } catch {
@@ -137,7 +147,9 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
     }
   }, [playing, playhead, project]);
 
-  const activeSubtitles = project.subtitles.filter((s) => playhead >= s.start && playhead < s.start + s.duration);
+  const activeSubtitles = project.subtitles.filter(
+    (s) => playhead >= s.start && playhead < s.start + s.duration,
+  );
   const textBoxes = [
     ...project.overlays
       .filter((o) => playhead >= o.start && playhead < o.start + o.duration)
@@ -160,15 +172,17 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
       boxOpacity: 0.55,
     })),
     ...(activeSubtitles.length === 0 && clip?.sourceLine
-      ? [{
-          id: `${clip.id}-source-line`,
-          text: clip.sourceLine,
-          position: "bottom" as const,
-          fontSize: 48,
-          color: "#ffffff",
-          boxColor: "#000000",
-          boxOpacity: 0.55,
-        }]
+      ? [
+          {
+            id: `${clip.id}-source-line`,
+            text: clip.sourceLine,
+            position: "bottom" as const,
+            fontSize: 48,
+            color: "#ffffff",
+            boxColor: "#000000",
+            boxOpacity: 0.55,
+          },
+        ]
       : []),
   ];
 
@@ -259,7 +273,13 @@ function clamp(value: number, min: number, max: number) {
 function colorWithAlpha(color: string, alpha: number) {
   if (!color.startsWith("#")) return color;
   const hex = color.slice(1);
-  const normalized = hex.length === 3 ? hex.split("").map((x) => x + x).join("") : hex;
+  const normalized =
+    hex.length === 3
+      ? hex
+          .split("")
+          .map((x) => x + x)
+          .join("")
+      : hex;
   const int = Number.parseInt(normalized, 16);
   if (!Number.isFinite(int)) return color;
   const r = (int >> 16) & 255;

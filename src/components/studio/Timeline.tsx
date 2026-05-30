@@ -38,11 +38,36 @@ export function Timeline(props: Props) {
   }, [playhead, pxPerSec]);
 
   const trackList: { key: TrackKey; label: string; clips: AnyClip[]; color: string }[] = [
-    { key: "video", label: "Video", clips: project.video, color: "bg-rose-500/80 border-rose-300/70" },
-    { key: "voice", label: "Voice", clips: project.voice, color: "bg-emerald-500/80 border-emerald-300/70" },
-    { key: "music", label: "Music", clips: project.music, color: "bg-sky-500/80 border-sky-300/70" },
-    { key: "overlays", label: "Overlays", clips: project.overlays, color: "bg-amber-500/80 border-amber-300/70" },
-    { key: "subtitles", label: "Subtitles", clips: project.subtitles, color: "bg-purple-500/80 border-purple-300/70" },
+    {
+      key: "video",
+      label: "Video",
+      clips: project.video,
+      color: "bg-rose-500/80 border-rose-300/70",
+    },
+    {
+      key: "voice",
+      label: "Voice",
+      clips: project.voice,
+      color: "bg-emerald-500/80 border-emerald-300/70",
+    },
+    {
+      key: "music",
+      label: "Music",
+      clips: project.music,
+      color: "bg-sky-500/80 border-sky-300/70",
+    },
+    {
+      key: "overlays",
+      label: "Overlays",
+      clips: project.overlays,
+      color: "bg-amber-500/80 border-amber-300/70",
+    },
+    {
+      key: "subtitles",
+      label: "Subtitles",
+      clips: project.subtitles,
+      color: "bg-purple-500/80 border-purple-300/70",
+    },
   ];
 
   function onRulerClick(e: React.MouseEvent) {
@@ -54,7 +79,10 @@ export function Timeline(props: Props) {
   function scrollByAmount(direction: -1 | 1) {
     const scroller = scrollerRef.current;
     if (!scroller) return;
-    scroller.scrollBy({ left: direction * Math.max(320, scroller.clientWidth * 0.75), behavior: "smooth" });
+    scroller.scrollBy({
+      left: direction * Math.max(320, scroller.clientWidth * 0.75),
+      behavior: "smooth",
+    });
   }
 
   return (
@@ -70,34 +98,66 @@ export function Timeline(props: Props) {
             onChange={(e) => setPxPerSec(Number(e.target.value))}
             className="w-32"
           />
-          <span className="text-white/40">{playhead.toFixed(2)}s / {duration.toFixed(2)}s</span>
+          <span className="text-white/40">
+            {playhead.toFixed(2)}s / {duration.toFixed(2)}s
+          </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-white/60" onClick={() => scrollByAmount(-1)} title="Scroll timeline left">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-white/60"
+            onClick={() => scrollByAmount(-1)}
+            title="Scroll timeline left"
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-white/60" onClick={() => scrollByAmount(1)} title="Scroll timeline right">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-white/60"
+            onClick={() => scrollByAmount(1)}
+            title="Scroll timeline right"
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
         {selection && (
           <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs"
-              onClick={() => dispatch({ type: "split_clip", track: selection.track, id: selection.id, at: playhead })}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 text-xs"
+              onClick={() =>
+                dispatch({
+                  type: "split_clip",
+                  track: selection.track,
+                  id: selection.id,
+                  at: playhead,
+                })
+              }
+            >
               <Scissors className="h-3 w-3" /> Split at playhead
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs text-red-300 hover:text-red-200"
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 text-xs text-red-300 hover:text-red-200"
               onClick={() => {
                 dispatch({ type: "remove_clip", track: selection.track, id: selection.id });
                 setSelection(null);
-              }}>
+              }}
+            >
               <Trash2 className="h-3 w-3" /> Delete
             </Button>
           </div>
         )}
       </div>
 
-      <div className="relative flex-1 overflow-x-scroll overflow-y-auto [scrollbar-color:rgba(255,255,255,0.35)_rgba(255,255,255,0.08)] [scrollbar-gutter:stable]" ref={scrollerRef}>
+      <div
+        className="relative flex-1 overflow-x-scroll overflow-y-auto [scrollbar-color:rgba(255,255,255,0.35)_rgba(255,255,255,0.08)] [scrollbar-gutter:stable]"
+        ref={scrollerRef}
+      >
         <div style={{ width: timelineWidth }} className="relative min-w-full pb-4">
           {/* Ruler */}
           <div
@@ -105,14 +165,21 @@ export function Timeline(props: Props) {
             onClick={onRulerClick}
           >
             {Array.from({ length: Math.ceil(duration) + 1 }).map((_, i) => (
-              <div key={i} className="absolute top-0 h-full border-l border-white/10 pl-1 text-[10px] text-white/40" style={{ left: i * pxPerSec }}>
+              <div
+                key={i}
+                className="absolute top-0 h-full border-l border-white/10 pl-1 text-[10px] text-white/40"
+                style={{ left: i * pxPerSec }}
+              >
                 {i}s
               </div>
             ))}
           </div>
 
           {/* Playhead */}
-          <div className="pointer-events-none absolute top-0 z-20 h-full w-0.5 bg-red-400" style={{ left: playhead * pxPerSec }} />
+          <div
+            className="pointer-events-none absolute top-0 z-20 h-full w-0.5 bg-red-400"
+            style={{ left: playhead * pxPerSec }}
+          />
 
           {/* Tracks */}
           {trackList.map((t) => (
@@ -128,11 +195,24 @@ export function Timeline(props: Props) {
                   color={t.color}
                   selected={selection?.track === t.key && selection.id === c.id}
                   onSelect={() => setSelection({ track: t.key, id: c.id })}
-                  onResize={(newDur) => dispatch({ type: "update_clip", track: t.key, id: c.id, patch: { duration: newDur } })}
+                  onResize={(newDur) =>
+                    dispatch({
+                      type: "update_clip",
+                      track: t.key,
+                      id: c.id,
+                      patch: { duration: newDur },
+                    })
+                  }
                   onMove={
                     t.key === "video"
                       ? undefined
-                      : (newStart) => dispatch({ type: "update_clip", track: t.key, id: c.id, patch: { start: newStart } })
+                      : (newStart) =>
+                          dispatch({
+                            type: "update_clip",
+                            track: t.key,
+                            id: c.id,
+                            patch: { start: newStart },
+                          })
                   }
                 />
               ))}
