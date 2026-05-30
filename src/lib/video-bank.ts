@@ -1,8 +1,11 @@
-// Server-backed clip bank. Clips are stored in Supabase Storage under
-// `<userId>/prompter-clips/`. Duration and display name are encoded in the
-// filename so we don't need an extra DB table:
+// Server-backed clip bank, SHARED across all signed-in users. Clips are
+// stored in Supabase Storage under `_shared/prompter-clips/`. Duration and
+// display name are encoded in the filename so we don't need an extra DB
+// table:
 //   `${createdAtMs}__${durationSec}s__${safeName}.${ext}`
 import { supabase } from "@/integrations/supabase/client";
+
+const SHARED_FOLDER = "_shared/prompter-clips";
 
 export type SavedClip = {
   id: string; // storage path
@@ -30,10 +33,9 @@ function parseFilename(filename: string): { createdAt: number; durationSec: numb
   };
 }
 
-async function currentUserId(): Promise<string> {
+async function requireSignedIn(): Promise<void> {
   const { data } = await supabase.auth.getUser();
   if (!data.user) throw new Error("Not signed in");
-  return data.user.id;
 }
 
 export async function saveClip(input: {
@@ -42,10 +44,10 @@ export async function saveClip(input: {
   durationSec: number;
   name: string;
 }): Promise<SavedClip> {
-  const userId = await currentUserId();
+  await requireSignedIn();
   const createdAt = Date.now();
   const filename = `${createdAt}__${Math.max(0, Math.floor(input.durationSec))}s__${safeFile(input.name)}.${input.ext}`;
-  const path = `${userId}/prompter-clips/${filename}`;
+  const path = `${SHARED_FOLDER}/${filename}`;
   const { error } = await supabase.storage.from(BUCKET).upload(path, input.blob, {
     contentType: input.blob.type || (input.ext === "mp4" ? "video/mp4" : "video/webm"),
     upsert: false,
@@ -57,9 +59,8 @@ export async function saveClip(input: {
 export async function listClips(): Promise<SavedClip[]> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return [];
-  const folder = `${userData.user.id}/prompter-clips`;
-  const { data: files, error } = await supabase.storage.from(BUCKET).list(folder, {
-    limit: 200,
+  const { data: files, error } = await supabase.storage.from(BUCKET).list(SHARED_FOLDER, {
+    limit: 500,
     sortBy: { column: "name", order: "desc" },
   });
   if (error) throw error;
@@ -69,7 +70,7 @@ export async function listClips(): Promise<SavedClip[]> {
     if (!f.name || f.name === ".emptyFolderPlaceholder") continue;
     const meta = parseFilename(f.name);
     if (!meta) continue;
-    const path = `${folder}/${f.name}`;
+    const path = `${SHARED_FOLDER}/${f.name}`;
     const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(path);
     if (dlErr || !blob) continue;
     clips.push({
