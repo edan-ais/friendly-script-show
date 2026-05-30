@@ -12,7 +12,8 @@ export type MediaAsset = {
   name: string;
   kind: "video" | "audio";
   mime: string;
-  url: string; // object URL
+  url: string; // current playable URL (signed URL after reload, or object URL right after upload)
+  storagePath?: string; // path in the "media" bucket if persisted server-side
   duration: number; // seconds
   width?: number;
   height?: number;

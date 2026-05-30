@@ -29,6 +29,7 @@ import {
 import {
   type Aspect,
   type MediaAsset,
+  type Project,
   type Selection,
   emptyProject,
   projectDuration,
@@ -36,6 +37,9 @@ import {
 } from "@/lib/studio/types";
 import { reducer } from "@/lib/studio/state";
 import { exportProjectToMp4 } from "@/lib/studio/export";
+import { useAuth, signOut } from "@/hooks/use-auth";
+import { loadOrCreateProject, saveProject } from "@/lib/persistence/projects";
+import { uploadMedia, signMedia } from "@/lib/persistence/media";
 
 import { ScriptImporter } from "./ScriptImporter";
 import { Timeline } from "./Timeline";
