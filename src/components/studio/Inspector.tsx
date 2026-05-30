@@ -74,6 +74,7 @@ function VideoInspector({
   clip,
   assets,
   dispatch,
+  setPlayhead,
 }: {
   clip: VideoClip;
   assets: MediaAsset[];
@@ -103,11 +104,15 @@ function VideoInspector({
             setPlayhead?.(clip.start);
           }}
         >
-          <SelectTrigger className="bg-white/5"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="bg-white/5">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="__none">— No clip (black) —</SelectItem>
             {videoAssets.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+              <SelectItem key={a.id} value={a.id}>
+                {a.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
