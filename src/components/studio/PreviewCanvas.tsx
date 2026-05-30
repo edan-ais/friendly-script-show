@@ -157,12 +157,17 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
   }, [playing, playhead, project]);
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-black">
-      <canvas
-        ref={canvasRef}
-        className="max-h-full max-w-full"
-        style={{ aspectRatio: `${w}/${h}` }}
-      />
+    <div className="flex h-full w-full items-center justify-center bg-black p-2">
+      <div
+        className="relative max-h-full max-w-full"
+        style={{ aspectRatio: `${w} / ${h}`, height: "100%" }}
+      >
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 h-full w-full object-contain"
+          style={{ aspectRatio: `${w} / ${h}` }}
+        />
+      </div>
     </div>
   );
 }
