@@ -26,9 +26,10 @@ type Props = {
   project: Project;
   selection: Selection;
   dispatch: (a: Action) => void;
+  setPlayhead?: (time: number) => void;
 };
 
-export function Inspector({ project, selection, dispatch }: Props) {
+export function Inspector({ project, selection, dispatch, setPlayhead }: Props) {
   if (!selection) {
     return (
       <div className="p-4 text-sm text-white/50">
@@ -39,7 +40,7 @@ export function Inspector({ project, selection, dispatch }: Props) {
   if (selection.track === "video") {
     const clip = project.video.find((c) => c.id === selection.id);
     if (!clip) return null;
-    return <VideoInspector clip={clip} assets={project.assets} dispatch={dispatch} />;
+    return <VideoInspector clip={clip} assets={project.assets} dispatch={dispatch} setPlayhead={setPlayhead} />;
   }
   if (selection.track === "voice" || selection.track === "music") {
     const list = selection.track === "voice" ? project.voice : project.music;
@@ -77,6 +78,7 @@ function VideoInspector({
   clip: VideoClip;
   assets: MediaAsset[];
   dispatch: (a: Action) => void;
+  setPlayhead?: (time: number) => void;
 }) {
   const patch = (p: Partial<VideoClip>) =>
     dispatch({ type: "update_clip", track: "video", id: clip.id, patch: p });
@@ -96,7 +98,10 @@ function VideoInspector({
       <Row label="Source clip">
         <Select
           value={clip.assetId ?? "__none"}
-          onValueChange={(v) => patch({ assetId: v === "__none" ? undefined : v, inPoint: 0 })}
+          onValueChange={(v) => {
+            patch({ assetId: v === "__none" ? undefined : v, inPoint: 0 });
+            setPlayhead?.(clip.start);
+          }}
         >
           <SelectTrigger className="bg-white/5"><SelectValue /></SelectTrigger>
           <SelectContent>
