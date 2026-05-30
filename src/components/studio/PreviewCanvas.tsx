@@ -184,7 +184,10 @@ export function PreviewCanvas({ project, playhead, playing }: Props) {
   }, [playing, playhead, project]);
 
   return (
-    <div ref={frameRef} className="flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden bg-black p-3">
+    <div
+      ref={frameRef}
+      className="flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden bg-black p-3"
+    >
       <canvas
         ref={canvasRef}
         width={w}
@@ -220,12 +223,7 @@ function drawTextBox(
   const boxW = Math.min(w * 0.9, metrics.width + padX * 2);
   const boxH = fs + padY * 2;
   const x = w / 2 - boxW / 2;
-  const y =
-    position === "top"
-      ? h * 0.08
-      : position === "bottom"
-        ? h - h * 0.08 - boxH
-        : h / 2 - boxH / 2;
+  const y = position === "top" ? h * 0.08 : position === "bottom" ? h - h * 0.08 - boxH : h / 2 - boxH / 2;
   ctx.globalAlpha = boxOpacity;
   ctx.fillStyle = boxColor;
   ctx.fillRect(x, y, boxW, boxH);
