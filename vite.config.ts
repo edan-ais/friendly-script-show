@@ -12,7 +12,12 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  // Build for Netlify (SSR via Netlify Functions) when deploying outside Lovable.
-  // Override at build time with NITRO_PRESET if needed.
-  nitro: true,
+  // Build for Netlify SSR when deploying through GitHub.
+  nitro: {
+    preset: "netlify",
+    output: {
+      dir: ".netlify/functions-internal",
+      publicDir: "dist",
+    },
+  },
 });
