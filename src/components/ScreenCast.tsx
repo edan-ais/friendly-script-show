@@ -214,7 +214,7 @@ export function ScreenCast() {
     const draw = () => {
       const sv = screenVideoRef.current;
       const cv = camVideoRef.current;
-      if (sv && sv.readyState >= 2) {
+      if (sv && sv.readyState >= 2 && sv.videoWidth > 0 && sv.videoHeight > 0) {
         // letterbox the screen into the canvas (cover, preserve aspect)
         const sr = sv.videoWidth / sv.videoHeight;
         const cr = width / height;
