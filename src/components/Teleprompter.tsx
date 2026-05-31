@@ -523,7 +523,7 @@ export function Teleprompter() {
           <Button
             size="lg"
             variant="secondary"
-            className="flex-1 max-w-xs"
+            className="flex-1 max-w-[10rem]"
             onClick={() => enterStage("preview")}
           >
             <Eye className="size-4" /> Preview
@@ -531,10 +531,15 @@ export function Teleprompter() {
           <Button
             size="lg"
             variant="destructive"
-            className="flex-1 max-w-xs"
+            className="flex-1 max-w-[10rem]"
             onClick={() => enterStage("record")}
           >
             <Circle className="size-4 fill-current" /> Record
+          </Button>
+          <Button size="lg" variant="default" className="flex-1 max-w-[10rem]" asChild>
+            <Link to="/cast">
+              <Video className="size-4" /> Screen cast
+            </Link>
           </Button>
         </div>
 
