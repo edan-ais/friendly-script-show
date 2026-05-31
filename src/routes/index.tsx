@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Video, FileText, Sparkles, Film } from "lucide-react";
+import { Video, FileText, Sparkles, Film, FolderOpen } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -46,6 +46,13 @@ const apps: AppTile[] = [
     tagline: "Script-to-video editor",
     icon: <Film className="h-12 w-12" strokeWidth={2.25} />,
     gradient: "from-violet-400 via-fuchsia-500 to-purple-700",
+  },
+  {
+    to: "/files",
+    name: "Files",
+    tagline: "Download key docs",
+    icon: <FolderOpen className="h-12 w-12" strokeWidth={2.25} />,
+    gradient: "from-emerald-300 via-teal-500 to-cyan-700",
   },
 ];
 
