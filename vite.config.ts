@@ -17,6 +17,7 @@ export default defineConfig({
     preset: "netlify",
     output: {
       dir: ".netlify/functions-internal",
+      serverDir: ".netlify/functions-internal/server",
       publicDir: "dist",
     },
   },
