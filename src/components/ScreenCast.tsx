@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import {
   ArrowLeft,
   Circle,
@@ -97,7 +97,7 @@ export function ScreenCast() {
   const pipWindowRef = useRef<DocumentPictureInPictureWindow | null>(null);
   const scrollSaveTimer = useRef<number | null>(null);
 
-  const getSourceVideo = (ref: React.MutableRefObject<HTMLVideoElement | null>) => {
+  const getSourceVideo = (ref: MutableRefObject<HTMLVideoElement | null>) => {
     if (ref.current) return ref.current;
     const video = document.createElement("video");
     video.autoplay = true;
@@ -579,29 +579,9 @@ export function ScreenCast() {
     );
   }
 
-  // Hidden source elements are mounted always so refs are stable.
-  // NOTE: we can't use `display:none` here — Chromium throttles/pauses
-  // decoding of hidden <video> elements, which leaves readyState < 2 and
-  // makes drawImage() draw nothing. Render them off-screen instead.
-  const hiddenSources = (
-    <div
-      aria-hidden
-      style={{
-        position: "fixed",
-        left: -9999,
-        top: -9999,
-        width: 1,
-        height: 1,
-        overflow: "hidden",
-        opacity: 0,
-        pointerEvents: "none",
-      }}
-    >
-      <video ref={screenVideoRef} autoPlay muted playsInline />
-      <video ref={camVideoRef} autoPlay muted playsInline />
-      <canvas ref={canvasRef} />
-    </div>
-  );
+  // Source media elements are intentionally detached from React DOM so route
+  // stage changes cannot remount them and break the active screen/camera feeds.
+  const hiddenSources = null;
 
   if (stage === "setup") {
     return (
@@ -859,7 +839,7 @@ function FloatingPrompter({
 }: {
   text: string;
   fontSize: number;
-  scrollRef: React.MutableRefObject<HTMLDivElement | null>;
+  scrollRef: MutableRefObject<HTMLDivElement | null>;
 }) {
   const [pos, setPos] = useState({ x: 24, y: 80 });
   const [size, setSize] = useState({ w: 520, h: 280 });
