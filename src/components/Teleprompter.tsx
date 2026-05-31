@@ -536,11 +536,6 @@ export function Teleprompter() {
           >
             <Circle className="size-4 fill-current" /> Record
           </Button>
-          <Button size="lg" variant="default" className="flex-1 max-w-[10rem]" asChild>
-            <Link to="/cast">
-              <Video className="size-4" /> Screen cast
-            </Link>
-          </Button>
         </div>
 
         {bankOpen && (
