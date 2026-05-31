@@ -97,6 +97,23 @@ export function ScreenCast() {
   const pipWindowRef = useRef<DocumentPictureInPictureWindow | null>(null);
   const scrollSaveTimer = useRef<number | null>(null);
 
+  const getSourceVideo = (ref: React.MutableRefObject<HTMLVideoElement | null>) => {
+    if (ref.current) return ref.current;
+    const video = document.createElement("video");
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+    ref.current = video;
+    return video;
+  };
+
+  const getCanvas = () => {
+    if (canvasRef.current) return canvasRef.current;
+    const canvas = document.createElement("canvas");
+    canvasRef.current = canvas;
+    return canvas;
+  };
+
   // ---- load script ----
   useEffect(() => {
     if (!user) return;
@@ -180,7 +197,7 @@ export function ScreenCast() {
 
   // ---- composite renderer ----
   function startCompositeLoop(width: number, height: number) {
-    const canvas = canvasRef.current!;
+    const canvas = getCanvas();
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d", { alpha: false })!;
@@ -210,7 +227,7 @@ export function ScreenCast() {
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, width, height);
       }
-      if (camOn && cv && cv.readyState >= 2) {
+      if (camOn && cv && cv.readyState >= 2 && cv.videoWidth > 0 && cv.videoHeight > 0) {
         // circular webcam, ~22% of canvas height, position from current pipPos
         const size = Math.round(height * 0.22);
         const margin = Math.round(height * 0.025);
@@ -291,15 +308,15 @@ export function ScreenCast() {
       });
       camStreamRef.current = cam;
 
-      // attach to hidden sources
-      if (screenVideoRef.current) {
-        screenVideoRef.current.srcObject = screen;
-        await screenVideoRef.current.play().catch(() => {});
-      }
-      if (camVideoRef.current) {
-        camVideoRef.current.srcObject = new MediaStream(cam.getVideoTracks());
-        await camVideoRef.current.play().catch(() => {});
-      }
+      // Attach to detached source elements so React stage changes cannot remount
+      // them and drop the streams while the canvas compositor is drawing.
+      const screenVideo = getSourceVideo(screenVideoRef);
+      screenVideo.srcObject = screen;
+      await screenVideo.play().catch(() => {});
+
+      const camVideo = getSourceVideo(camVideoRef);
+      camVideo.srcObject = new MediaStream(cam.getVideoTracks());
+      await camVideo.play().catch(() => {});
 
       // wait one frame for metadata
       const vw = screen.getVideoTracks()[0].getSettings().width || 1280;
@@ -308,7 +325,7 @@ export function ScreenCast() {
       startCompositeLoop(vw, vh);
 
       // build composite stream: canvas video + audio tracks
-      const compositeVideo = (canvasRef.current as HTMLCanvasElement).captureStream(30);
+      const compositeVideo = getCanvas().captureStream(30);
       const composite = new MediaStream();
       compositeVideo.getVideoTracks().forEach((t) => composite.addTrack(t));
 
