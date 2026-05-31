@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useRef, useState, type MutableRefObject, type PointerEvent } from "react";
 import {
   ArrowLeft,
   Circle,
@@ -846,11 +846,11 @@ function FloatingPrompter({
   const [collapsed, setCollapsed] = useState(false);
   const dragRef = useRef<{ dx: number; dy: number } | null>(null);
 
-  const onPointerDown = (e: React.PointerEvent) => {
+  const onPointerDown = (e: PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     dragRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y };
   };
-  const onPointerMove = (e: React.PointerEvent) => {
+  const onPointerMove = (e: PointerEvent) => {
     if (!dragRef.current) return;
     const x = Math.max(0, Math.min(window.innerWidth - size.w, e.clientX - dragRef.current.dx));
     const y = Math.max(0, Math.min(window.innerHeight - 60, e.clientY - dragRef.current.dy));
