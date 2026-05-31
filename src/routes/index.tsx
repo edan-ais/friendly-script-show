@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Video, FileText, Sparkles, Film, FolderOpen, MonitorUp } from "lucide-react";
+import { Video, FileText, Sparkles, FolderOpen } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   ssr: false,
