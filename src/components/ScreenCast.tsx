@@ -562,9 +562,24 @@ export function ScreenCast() {
     );
   }
 
-  // Hidden source elements are mounted always so refs are stable
+  // Hidden source elements are mounted always so refs are stable.
+  // NOTE: we can't use `display:none` here — Chromium throttles/pauses
+  // decoding of hidden <video> elements, which leaves readyState < 2 and
+  // makes drawImage() draw nothing. Render them off-screen instead.
   const hiddenSources = (
-    <div className="hidden">
+    <div
+      aria-hidden
+      style={{
+        position: "fixed",
+        left: -9999,
+        top: -9999,
+        width: 1,
+        height: 1,
+        overflow: "hidden",
+        opacity: 0,
+        pointerEvents: "none",
+      }}
+    >
       <video ref={screenVideoRef} autoPlay muted playsInline />
       <video ref={camVideoRef} autoPlay muted playsInline />
       <canvas ref={canvasRef} />
