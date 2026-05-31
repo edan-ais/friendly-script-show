@@ -40,6 +40,12 @@ const FILES: FileItem[] = [
     href: "/files/wire-transfer-instructions.pdf",
     filename: "AICD10-Wire-Transfer-Instructions.pdf",
   },
+  {
+    name: "HUBL Engine — Performance Report",
+    description: "Average data ingestion stats for HUBL Engine on AICD-10 letterhead.",
+    href: "/files/hubl-engine-performance-report.pdf",
+    filename: "AICD10-HUBL-Engine-Performance-Report.pdf",
+  },
 ];
 
 function FilesPage() {
