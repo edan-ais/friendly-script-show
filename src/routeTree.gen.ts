@@ -9,24 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as StudioRouteImport } from './routes/studio'
-import { Route as PrompterRouteImport } from './routes/prompter'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as DocumentRouteImport } from './routes/document'
-import { Route as CastRouteImport } from './routes/cast'
 import { Route as IndexRouteImport } from './routes/index'
 
-const StudioRoute = StudioRouteImport.update({
-  id: '/studio',
-  path: '/studio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrompterRoute = PrompterRouteImport.update({
-  id: '/prompter',
-  path: '/prompter',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -42,11 +29,6 @@ const DocumentRoute = DocumentRouteImport.update({
   path: '/document',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CastRoute = CastRouteImport.update({
-  id: '/cast',
-  path: '/cast',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -55,88 +37,40 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/cast': typeof CastRoute
   '/document': typeof DocumentRoute
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
-  '/prompter': typeof PrompterRoute
-  '/studio': typeof StudioRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/cast': typeof CastRoute
   '/document': typeof DocumentRoute
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
-  '/prompter': typeof PrompterRoute
-  '/studio': typeof StudioRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/cast': typeof CastRoute
   '/document': typeof DocumentRoute
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
-  '/prompter': typeof PrompterRoute
-  '/studio': typeof StudioRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/cast'
-    | '/document'
-    | '/files'
-    | '/login'
-    | '/prompter'
-    | '/studio'
+  fullPaths: '/' | '/document' | '/files' | '/login'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/cast'
-    | '/document'
-    | '/files'
-    | '/login'
-    | '/prompter'
-    | '/studio'
-  id:
-    | '__root__'
-    | '/'
-    | '/cast'
-    | '/document'
-    | '/files'
-    | '/login'
-    | '/prompter'
-    | '/studio'
+  to: '/' | '/document' | '/files' | '/login'
+  id: '__root__' | '/' | '/document' | '/files' | '/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CastRoute: typeof CastRoute
   DocumentRoute: typeof DocumentRoute
   FilesRoute: typeof FilesRoute
   LoginRoute: typeof LoginRoute
-  PrompterRoute: typeof PrompterRoute
-  StudioRoute: typeof StudioRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/studio': {
-      id: '/studio'
-      path: '/studio'
-      fullPath: '/studio'
-      preLoaderRoute: typeof StudioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/prompter': {
-      id: '/prompter'
-      path: '/prompter'
-      fullPath: '/prompter'
-      preLoaderRoute: typeof PrompterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -158,13 +92,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cast': {
-      id: '/cast'
-      path: '/cast'
-      fullPath: '/cast'
-      preLoaderRoute: typeof CastRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -177,13 +104,20 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CastRoute: CastRoute,
   DocumentRoute: DocumentRoute,
   FilesRoute: FilesRoute,
   LoginRoute: LoginRoute,
-  PrompterRoute: PrompterRoute,
-  StudioRoute: StudioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
