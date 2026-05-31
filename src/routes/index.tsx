@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Video, FileText, Sparkles, Film, FolderOpen } from "lucide-react";
+import { Video, FileText, Sparkles, Film, FolderOpen, MonitorUp } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -32,6 +32,13 @@ const apps: AppTile[] = [
     tagline: "Teleprompter + recorder",
     icon: <Video className="h-12 w-12" strokeWidth={2.25} />,
     gradient: "from-amber-300 via-orange-400 to-rose-500",
+  },
+  {
+    to: "/cast",
+    name: "Screen Cast",
+    tagline: "Loom-style screen + face",
+    icon: <MonitorUp className="h-12 w-12" strokeWidth={2.25} />,
+    gradient: "from-sky-300 via-blue-500 to-indigo-700",
   },
   {
     to: "/document",

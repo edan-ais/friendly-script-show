@@ -14,6 +14,7 @@ import { Route as PrompterRouteImport } from './routes/prompter'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as DocumentRouteImport } from './routes/document'
+import { Route as CastRouteImport } from './routes/cast'
 import { Route as IndexRouteImport } from './routes/index'
 
 const StudioRoute = StudioRouteImport.update({
@@ -41,6 +42,11 @@ const DocumentRoute = DocumentRouteImport.update({
   path: '/document',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CastRoute = CastRouteImport.update({
+  id: '/cast',
+  path: '/cast',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cast': typeof CastRoute
   '/document': typeof DocumentRoute
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cast': typeof CastRoute
   '/document': typeof DocumentRoute
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cast': typeof CastRoute
   '/document': typeof DocumentRoute
   '/files': typeof FilesRoute
   '/login': typeof LoginRoute
@@ -74,12 +83,27 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/document' | '/files' | '/login' | '/prompter' | '/studio'
+  fullPaths:
+    | '/'
+    | '/cast'
+    | '/document'
+    | '/files'
+    | '/login'
+    | '/prompter'
+    | '/studio'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/document' | '/files' | '/login' | '/prompter' | '/studio'
+  to:
+    | '/'
+    | '/cast'
+    | '/document'
+    | '/files'
+    | '/login'
+    | '/prompter'
+    | '/studio'
   id:
     | '__root__'
     | '/'
+    | '/cast'
     | '/document'
     | '/files'
     | '/login'
@@ -89,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CastRoute: typeof CastRoute
   DocumentRoute: typeof DocumentRoute
   FilesRoute: typeof FilesRoute
   LoginRoute: typeof LoginRoute
@@ -133,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cast': {
+      id: '/cast'
+      path: '/cast'
+      fullPath: '/cast'
+      preLoaderRoute: typeof CastRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -145,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CastRoute: CastRoute,
   DocumentRoute: DocumentRoute,
   FilesRoute: FilesRoute,
   LoginRoute: LoginRoute,
