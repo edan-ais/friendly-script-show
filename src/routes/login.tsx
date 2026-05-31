@@ -56,8 +56,8 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#08080f] px-4 text-white">
       <div className="w-full max-w-sm space-y-6 rounded-2xl border border-white/10 bg-[#0c0c14] p-6 shadow-xl">
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold">Hackathon Prep</h1>
-          <p className="text-sm text-white/60">Sign in to access your tools.</p>
+          <h1 className="text-2xl font-semibold">Prompter / Studio</h1>
+          <p className="text-sm text-white/60">Sign in to save your scripts and projects.</p>
         </div>
         <Tabs defaultValue="signin">
           <TabsList className="grid w-full grid-cols-2">
