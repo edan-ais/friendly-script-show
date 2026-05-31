@@ -186,10 +186,19 @@ export function ScreenCast() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (stage !== "live" || !previewRef.current || !compositeStreamRef.current) return;
+    previewRef.current.srcObject = compositeStreamRef.current;
+    previewRef.current.play().catch(() => {});
+  }, [stage]);
+
   function stopAllTracks() {
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     camStreamRef.current?.getTracks().forEach((t) => t.stop());
     compositeStreamRef.current?.getTracks().forEach((t) => t.stop());
+    if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
+    if (camVideoRef.current) camVideoRef.current.srcObject = null;
+    if (previewRef.current) previewRef.current.srcObject = null;
     screenStreamRef.current = null;
     camStreamRef.current = null;
     compositeStreamRef.current = null;
@@ -347,7 +356,8 @@ export function ScreenCast() {
       audioTracks.forEach((t) => composite.addTrack(t));
       compositeStreamRef.current = composite;
 
-      // show preview
+      // show preview if already mounted; the live-stage effect also attaches it
+      // after setStage because this element does not exist during setup.
       if (previewRef.current) {
         previewRef.current.srcObject = composite;
         previewRef.current.play().catch(() => {});
