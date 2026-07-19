@@ -29,7 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { listClips, saveClip, deleteClip, type SavedClip } from "@/lib/video-bank";
+import { listClips, saveClip, deleteClip, getClipBlob, type SavedClip } from "@/lib/video-bank";
 import { videoToMp4, webmToMp4 } from "@/lib/convert";
 import { useAuth, signOut } from "@/hooks/use-auth";
 import { loadOrCreateScript, saveScript } from "@/lib/persistence/scripts";
