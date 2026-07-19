@@ -29,7 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { listClips, saveClip, deleteClip, type SavedClip } from "@/lib/video-bank";
+import { listClips, saveClip, deleteClip, getClipBlob, type SavedClip } from "@/lib/video-bank";
 import { videoToMp4, webmToMp4 } from "@/lib/convert";
 import { useAuth, signOut } from "@/hooks/use-auth";
 import { loadOrCreateScript, saveScript } from "@/lib/persistence/scripts";
@@ -320,13 +320,13 @@ export function Teleprompter() {
   const downloadClip = useCallback(
     async (clip: SavedClip, format: DownloadFormat) => {
       try {
-        let blob = clip.blob;
+        let blob: Blob = await getClipBlob(clip.id);
         let ext: string = clip.ext;
         if (format === "mp4") {
           setBusyId(clip.id);
           setConvertProgress({ ratio: 0, startedAt: performance.now() });
           toast.info("Converting to MP4… first time may take a moment.");
-          const result = await videoToMp4(clip.blob, {
+          const result = await videoToMp4(blob, {
             onProgress: (ratio) =>
               setConvertProgress((prev) => ({
                 ratio,
@@ -877,13 +877,11 @@ function BankCard({
   busy: boolean;
   progress: ConvertProgress;
 }) {
-  const [url, setUrl] = useState<string>("");
+  const [url, setUrl] = useState<string>(clip.url);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
-    const u = URL.createObjectURL(clip.blob);
-    setUrl(u);
-    return () => URL.revokeObjectURL(u);
-  }, [clip.blob]);
+    setUrl(clip.url);
+  }, [clip.url]);
 
   // WebM blobs produced by MediaRecorder have no duration metadata in the
   // container header, so Chromium/Firefox report duration as Infinity and
