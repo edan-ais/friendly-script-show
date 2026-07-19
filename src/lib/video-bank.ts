@@ -6,17 +6,19 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const SHARED_FOLDER = "_shared/prompter-clips";
+const BUCKET = "media";
+const SIGNED_URL_TTL = 60 * 60 * 6; // 6h
 
 export type SavedClip = {
   id: string; // storage path
   createdAt: number;
   durationSec: number;
-  blob: Blob;
   ext: "webm" | "mp4";
   name: string;
+  size: number;
+  /** Signed URL for streaming playback. Populated on list; refreshed on demand. */
+  url: string;
 };
-
-const BUCKET = "media";
 
 function safeFile(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80);
@@ -53,9 +55,26 @@ export async function saveClip(input: {
     upsert: false,
   });
   if (error) throw error;
-  return { id: path, createdAt, durationSec: input.durationSec, blob: input.blob, ext: input.ext, name: input.name };
+  const { data: signed, error: signErr } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL);
+  if (signErr) throw signErr;
+  return {
+    id: path,
+    createdAt,
+    durationSec: input.durationSec,
+    ext: input.ext,
+    name: input.name,
+    size: input.blob.size,
+    url: signed.signedUrl,
+  };
 }
 
+/**
+ * List clips. Returns metadata + a signed URL for streaming — does NOT
+ * download every blob (previously caused the bank to hang/fail with many
+ * clips). Blobs are fetched lazily via `getClipBlob(id)` when needed.
+ */
 export async function listClips(): Promise<SavedClip[]> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return [];
@@ -65,24 +84,49 @@ export async function listClips(): Promise<SavedClip[]> {
   });
   if (error) throw error;
   if (!files) return [];
-  const clips: SavedClip[] = [];
+
+  const entries: { meta: NonNullable<ReturnType<typeof parseFilename>>; path: string; size: number }[] = [];
   for (const f of files) {
     if (!f.name || f.name === ".emptyFolderPlaceholder") continue;
     const meta = parseFilename(f.name);
     if (!meta) continue;
-    const path = `${SHARED_FOLDER}/${f.name}`;
-    const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(path);
-    if (dlErr || !blob) continue;
-    clips.push({
-      id: path,
-      createdAt: meta.createdAt,
-      durationSec: meta.durationSec,
-      ext: meta.ext,
-      name: meta.name,
-      blob,
+    entries.push({
+      meta,
+      path: `${SHARED_FOLDER}/${f.name}`,
+      size: (f.metadata as { size?: number } | null)?.size ?? 0,
     });
   }
+
+  // Batch sign for efficiency
+  const paths = entries.map((e) => e.path);
+  let signed: { path?: string | null; signedUrl: string }[] = [];
+  if (paths.length > 0) {
+    const { data, error: signErr } = await supabase.storage
+      .from(BUCKET)
+      .createSignedUrls(paths, SIGNED_URL_TTL);
+    if (signErr) throw signErr;
+    signed = data ?? [];
+  }
+  const urlByPath = new Map<string, string>();
+  for (const s of signed) if (s.path) urlByPath.set(s.path, s.signedUrl);
+
+  const clips: SavedClip[] = entries.map((e) => ({
+    id: e.path,
+    createdAt: e.meta.createdAt,
+    durationSec: e.meta.durationSec,
+    ext: e.meta.ext,
+    name: e.meta.name,
+    size: e.size,
+    url: urlByPath.get(e.path) ?? "",
+  }));
   return clips.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** Download the full clip bytes on demand (for conversion / export). */
+export async function getClipBlob(id: string): Promise<Blob> {
+  const { data, error } = await supabase.storage.from(BUCKET).download(id);
+  if (error || !data) throw error ?? new Error("Failed to download clip");
+  return data;
 }
 
 export async function deleteClip(id: string): Promise<void> {
