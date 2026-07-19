@@ -320,13 +320,13 @@ export function Teleprompter() {
   const downloadClip = useCallback(
     async (clip: SavedClip, format: DownloadFormat) => {
       try {
-        let blob = clip.blob;
+        let blob: Blob = await getClipBlob(clip.id);
         let ext: string = clip.ext;
         if (format === "mp4") {
           setBusyId(clip.id);
           setConvertProgress({ ratio: 0, startedAt: performance.now() });
           toast.info("Converting to MP4… first time may take a moment.");
-          const result = await videoToMp4(clip.blob, {
+          const result = await videoToMp4(blob, {
             onProgress: (ratio) =>
               setConvertProgress((prev) => ({
                 ratio,
