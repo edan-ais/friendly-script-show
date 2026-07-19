@@ -99,16 +99,16 @@ export async function listClips(): Promise<SavedClip[]> {
 
   // Batch sign for efficiency
   const paths = entries.map((e) => e.path);
-  let signed: { path?: string | null; signedUrl: string }[] = [];
+  const urlByPath = new Map<string, string>();
   if (paths.length > 0) {
     const { data, error: signErr } = await supabase.storage
       .from(BUCKET)
       .createSignedUrls(paths, SIGNED_URL_TTL);
     if (signErr) throw signErr;
-    signed = data ?? [];
+    for (const s of data ?? []) {
+      if (s.path && s.signedUrl) urlByPath.set(s.path, s.signedUrl);
+    }
   }
-  const urlByPath = new Map<string, string>();
-  for (const s of signed) if (s.path) urlByPath.set(s.path, s.signedUrl);
 
   const clips: SavedClip[] = entries.map((e) => ({
     id: e.path,
