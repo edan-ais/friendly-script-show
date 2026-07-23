@@ -8,6 +8,7 @@ const BlockSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("list"), items: z.array(z.string()) }),
   z.object({ kind: z.literal("quote"), text: z.string() }),
   z.object({ kind: z.literal("callout"), text: z.string() }),
+  z.object({ kind: z.literal("signature"), lines: z.array(z.string()) }),
 ]);
 
 const StructuredDocSchema = z.object({
