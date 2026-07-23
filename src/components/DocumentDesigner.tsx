@@ -433,10 +433,11 @@ export function DocumentDesigner() {
     try {
       const result = await structureFn({ data: { text: raw.trim() } });
       if (didPreserveMeaning(raw, result)) {
-        setDoc(result);
+        setDoc({ ...result, blocks: collapseSignatures(result.blocks) });
         toast.success("Document formatted.");
       } else {
-        setDoc(formatRawFallback(raw));
+        const fb = formatRawFallback(raw);
+        setDoc({ ...fb, blocks: collapseSignatures(fb.blocks) });
         toast.warning("AI changed too much, so I preserved your exact text instead.");
       }
     } catch (err) {
