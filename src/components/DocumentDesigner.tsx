@@ -168,7 +168,9 @@ function getDocText(doc: StructuredDoc) {
   return [
     doc.title,
     doc.subtitle ?? "",
-    ...doc.blocks.flatMap((block) => (block.kind === "list" ? block.items : block.text)),
+    ...doc.blocks.flatMap((block) =>
+      block.kind === "list" ? block.items : block.kind === "signature" ? block.lines : block.text,
+    ),
   ].join("\n");
 }
 
