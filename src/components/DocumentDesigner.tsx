@@ -244,7 +244,13 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
     ? [
         doc.title,
         doc.subtitle ?? "",
-        ...doc.blocks.map((block) => (block.kind === "list" ? block.items.join(" ") : block.text)),
+        ...doc.blocks.map((block) =>
+          block.kind === "list"
+            ? block.items.join(" ")
+            : block.kind === "signature"
+              ? block.lines.join(" ")
+              : block.text,
+        ),
       ]
         .join(" ")
         .trim()
