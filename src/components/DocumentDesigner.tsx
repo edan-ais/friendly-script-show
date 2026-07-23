@@ -491,6 +491,9 @@ export function DocumentDesigner() {
         .doc-bullet { margin-top: 0.62em; display: inline-block; width: 4px; height: 4px; flex: 0 0 auto; border-radius: 999px; }
         .doc-quote { border-left-width: 3px; padding-left: 12px; font-size: var(--doc-quote-font); line-height: var(--doc-line); font-style: italic; }
         .doc-callout { border-radius: 6px; padding: 8px 12px; font-size: var(--doc-body-font); line-height: 1.28; font-weight: 650; }
+        .doc-signature { font-size: var(--doc-body-font); line-height: 1.25; }
+        .doc-signature .doc-signature-line { margin: 0; padding: 0; }
+        .doc-signature .doc-signature-line:first-child { margin-bottom: 0.35em; }
         @media print {
           html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
           body * { visibility: hidden !important; }
