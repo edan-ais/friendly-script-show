@@ -113,7 +113,46 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
           {renderInline(block.text, `c-${index}`)}
         </div>
       );
+    case "signature":
+      return (
+        <div className="doc-block doc-signature" style={{ color: BRAND.navy }}>
+          {block.lines.map((ln, j) => (
+            <div key={j} className="doc-signature-line">
+              {renderInline(ln, `sig-${index}-${j}`)}
+            </div>
+          ))}
+        </div>
+      );
   }
+}
+
+const SIGNATURE_STARTS =
+  /^(sincerely|best|regards|thanks|thank you|cheers|sincerely yours|yours truly|warm regards|kind regards|respectfully|with gratitude)[,.!]?\s*$/i;
+
+function collapseSignatures(blocks: DocBlock[]): DocBlock[] {
+  const out: DocBlock[] = [];
+  let i = 0;
+  while (i < blocks.length) {
+    const b = blocks[i];
+    if (b.kind === "paragraph" && SIGNATURE_STARTS.test(b.text.trim())) {
+      const lines: string[] = [b.text.trim()];
+      let j = i + 1;
+      while (j < blocks.length) {
+        const nb = blocks[j];
+        if (nb.kind !== "paragraph") break;
+        const t = nb.text.trim();
+        if (!t || t.length > 90 || /[.!?]$/.test(t) && t.split(/\s+/).length > 10) break;
+        lines.push(t);
+        j++;
+      }
+      out.push({ kind: "signature", lines });
+      i = j;
+    } else {
+      out.push(b);
+      i++;
+    }
+  }
+  return out;
 }
 
 function normalizeForCompare(text: string) {
