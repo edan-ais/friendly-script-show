@@ -113,7 +113,46 @@ function BlockView({ block, index }: { block: DocBlock; index: number }) {
           {renderInline(block.text, `c-${index}`)}
         </div>
       );
+    case "signature":
+      return (
+        <div className="doc-block doc-signature" style={{ color: BRAND.navy }}>
+          {block.lines.map((ln, j) => (
+            <div key={j} className="doc-signature-line">
+              {renderInline(ln, `sig-${index}-${j}`)}
+            </div>
+          ))}
+        </div>
+      );
   }
+}
+
+const SIGNATURE_STARTS =
+  /^(sincerely|best|regards|thanks|thank you|cheers|sincerely yours|yours truly|warm regards|kind regards|respectfully|with gratitude)[,.!]?\s*$/i;
+
+function collapseSignatures(blocks: DocBlock[]): DocBlock[] {
+  const out: DocBlock[] = [];
+  let i = 0;
+  while (i < blocks.length) {
+    const b = blocks[i];
+    if (b.kind === "paragraph" && SIGNATURE_STARTS.test(b.text.trim())) {
+      const lines: string[] = [b.text.trim()];
+      let j = i + 1;
+      while (j < blocks.length) {
+        const nb = blocks[j];
+        if (nb.kind !== "paragraph") break;
+        const t = nb.text.trim();
+        if (!t || t.length > 90 || /[.!?]$/.test(t) && t.split(/\s+/).length > 10) break;
+        lines.push(t);
+        j++;
+      }
+      out.push({ kind: "signature", lines });
+      i = j;
+    } else {
+      out.push(b);
+      i++;
+    }
+  }
+  return out;
 }
 
 function normalizeForCompare(text: string) {
@@ -129,7 +168,9 @@ function getDocText(doc: StructuredDoc) {
   return [
     doc.title,
     doc.subtitle ?? "",
-    ...doc.blocks.flatMap((block) => (block.kind === "list" ? block.items : block.text)),
+    ...doc.blocks.flatMap((block) =>
+      block.kind === "list" ? block.items : block.kind === "signature" ? block.lines : block.text,
+    ),
   ].join("\n");
 }
 
@@ -203,7 +244,13 @@ function getLayoutProfile(doc: StructuredDoc | null): LayoutProfile {
     ? [
         doc.title,
         doc.subtitle ?? "",
-        ...doc.blocks.map((block) => (block.kind === "list" ? block.items.join(" ") : block.text)),
+        ...doc.blocks.map((block) =>
+          block.kind === "list"
+            ? block.items.join(" ")
+            : block.kind === "signature"
+              ? block.lines.join(" ")
+              : block.text,
+        ),
       ]
         .join(" ")
         .trim()
@@ -386,10 +433,11 @@ export function DocumentDesigner() {
     try {
       const result = await structureFn({ data: { text: raw.trim() } });
       if (didPreserveMeaning(raw, result)) {
-        setDoc(result);
+        setDoc({ ...result, blocks: collapseSignatures(result.blocks) });
         toast.success("Document formatted.");
       } else {
-        setDoc(formatRawFallback(raw));
+        const fb = formatRawFallback(raw);
+        setDoc({ ...fb, blocks: collapseSignatures(fb.blocks) });
         toast.warning("AI changed too much, so I preserved your exact text instead.");
       }
     } catch (err) {
@@ -443,6 +491,9 @@ export function DocumentDesigner() {
         .doc-bullet { margin-top: 0.62em; display: inline-block; width: 4px; height: 4px; flex: 0 0 auto; border-radius: 999px; }
         .doc-quote { border-left-width: 3px; padding-left: 12px; font-size: var(--doc-quote-font); line-height: var(--doc-line); font-style: italic; }
         .doc-callout { border-radius: 6px; padding: 8px 12px; font-size: var(--doc-body-font); line-height: 1.28; font-weight: 650; }
+        .doc-signature { font-size: var(--doc-body-font); line-height: 1.25; }
+        .doc-signature .doc-signature-line { margin: 0; padding: 0; }
+        .doc-signature .doc-signature-line:first-child { margin-bottom: 0.35em; }
         @media print {
           html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
           body * { visibility: hidden !important; }
